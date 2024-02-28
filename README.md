@@ -9,7 +9,7 @@ You can just add npm packages as ordinary Maven dependencies and have Maven down
 and cache them for you, as well as adding the Jars to your classpath for accessing
 the resources.
 
-See the [Wiki](wiki) for more information. 
+See the [[Wiki](wiki)](https://github.com/sshtools/npm2mvn/wiki) for more information. 
 
 ## Status
 
