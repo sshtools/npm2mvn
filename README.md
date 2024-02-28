@@ -9,14 +9,23 @@ You can just add npm packages as ordinary Maven dependencies and have Maven down
 and cache them for you, as well as adding the Jars to your classpath for accessing
 the resources.
 
-More to follow .. 
+See the [Wiki](wiki) for more information. 
 
-## Who Is This For?
+## Status
 
- * You are writing a Maven based Java web application and want to use Javascript resources that
-   are available via Npm. 
+Npm2Mvn is currently still in its alpha-stage, but we hope to rapidly bring it up
+to beta, then release quality.
+
+In the mean-time though, we have an experimental public repository 
+at https://npm2mvn.jadaptive.com that you can try out, or host your own by downloading
+one of our pre-release self-updating installers.
+
+Of course, you can always clone the source and build your own server. Is is even fully
+compatible with Graal Native Image for fast startup and low resource usage.
 
 ## TODO
+
+Npm2Mvn is currently under development. 
 
  * Locking for multi-user usage
  * Configurable cache

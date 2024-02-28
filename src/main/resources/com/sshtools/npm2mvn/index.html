@@ -6,8 +6,9 @@
 	<h1>Npm2Mvn</h1>
 	<p>A bridge between Npm and Maven</p>
 	<h2>Setup</h2>
-	<p>
-		Just add the following to your
+    <h3>Repository</h3>
+	<p>First you must configure the <em>npm2mvn</em> repository.
+		Just add the following to your project
 		<code>pom.xml</code>
 	</p>
 	<pre class="codeblock">
@@ -16,5 +17,36 @@
            &lt;url>http://localhost:9080&lt;/url&gt;
        &lt;/repository&gt;
     </pre>
+    <h3>Add Your Dependencies</h3>
+    <p>Now add your dependencies. You just need the package name and 
+    the version. The groupId for npm2mvn dependencies will always be <em>npm</em></p>
+    <pre class="codeblock">
+       &lt;dependency&gt;
+           &lt;groupId>npm&lt;/groupId&gt;
+           &lt;artifactId>npm&lt;/artifactId&gt;
+           &lt;version>5.3.1&lt;/url&gt;
+       &lt;/dependency&gt;
+       &lt;dependency&gt;
+           &lt;groupId>npm&lt;/groupId&gt;
+           &lt;artifactId>bootstrap-icons&lt;/artifactId&gt;
+           &lt;version>1.11.0&lt;/url&gt;
+       &lt;/dependency&gt;
+    </pre>
+    <h3>Access The Resource</h3>
+    <p>You can now access the Npm packages resources from within Java code.</p>
+    <pre class="codeblock">
+       try(var in = getClass().getResourceAsStream("/web/framework/npm/bootstrap/5.3.1/css/bootstrap.css")) {
+          in.transferTo(response.getOutputStream());
+       }       
+    </pre>
+    <small>In the real world, of course you wouldn't want to map every single resource like this,
+    you would have your framework such as Spring Web or plain old Servlets map the classpath to some 
+    namespace in the web URI. </small>
+    <h2>Find Out More</h2>
+    <ul>
+       <li>The anatomy of a npm2mvn jar</li>
+       <li>Integrating with Spring Web</li>
+       <li>Integrating with Servlets</li>
+    </ul>
 </body>
 </html>
