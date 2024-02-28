@@ -3,7 +3,7 @@
   <directoryPresets config="../../../target" />
   <application name="Npm2Mvn" applicationId="3923-8463-7793-8732" mediaDir="../../target/media" mediaFilePattern="npm2mvn-${compiler:sys.platform}-${compiler:sys.version}" lzmaCompression="true" pack200Compression="true" shortName="npm2mvn" publisher="Jadaptive" publisherWeb="https://jadaptive.com" version="0.0.1-SNAPSHOT" allPathsRelative="true" macVolumeId="c911279a1b9f40fa" javaMinVersion="21" javaMaxVersion="21" jdkMode="jdk">
     <searchSequence>
-      <envVar name="CALLBACK_SERVICE_JAVA_HOME" />
+      <directory location="jre" />
     </searchSequence>
     <variables>
       <variable name="enterpriseRepositoryPath" value="../../hypersocket.enterprise" />
@@ -1420,7 +1420,7 @@ killall -s SIGHUP dbus-daemon
 </preUninstallScript>
     </linuxDeb>
     <macosFolder name="macOS Folder (x64)" id="132" mediaFileName="npm2mvn-${compiler:sys.platform}-x64-${compiler:sys.version}" signLaunchers="true">
-      <jreBundle jdkProviderId="AdoptOpenJDK" release="21/jdk-21.0.2+13" overrideJdkRelease="true" />
+      <jreBundle jdkProviderId="JBR" release="21/21.0.2-b375.1" usePack200="false" />
     </macosFolder>
     <unixInstaller name="Linux Amd64 Installer" id="198" mediaFileName="npm2mvn-${compiler:sys.platform}-amd64-${compiler:sys.version}" />
     <unixInstaller name="Linux Aarch64 Installer" id="201" mediaFileName="npm2mvn-${compiler:sys.platform}-aarch64-${compiler:sys.version}">
@@ -1430,7 +1430,7 @@ killall -s SIGHUP dbus-daemon
       <jreBundle jdkProviderId="Liberica" release="21/21.0.2+14" overrideJdkRelease="true" platform="linux-arm32-vfp-hflt" />
     </unixInstaller>
     <macosFolder name="macOS Folder (aarch64)" id="219" mediaFileName="npm2mvn-${compiler:sys.platform}-aarch64-${compiler:sys.version}" architecture="aarch64" signLaunchers="true">
-      <jreBundle jdkProviderId="AdoptOpenJDK-OpenJ9" release="21/jdk-21.0.2+13_openj9-0.43.0" />
+      <jreBundle jdkProviderId="AdoptOpenJDK" release="21/jdk-21.0.2+13" />
     </macosFolder>
   </mediaSets>
   <buildOptions faster="true" disableSigning="true" />
