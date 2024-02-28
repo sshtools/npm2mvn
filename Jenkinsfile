@@ -48,10 +48,10 @@ pipeline {
         				}
         				
         				/* Stash installers */
-	        			stash includes: 'npm2mvn/target/media/*', name: 'windows-npm2mvn'
+	        			stash includes: 'target/media/*', name: 'windows-npm2mvn'
 	        			
 	        			/* Stash updates.xml */
-	        			dir('npm2mvn/target/media') {
+	        			dir('target/media') {
 							stash includes: 'updates.xml', name: 'windows-npm2mvn-updates-xml'
 	        			}
 					}
@@ -93,10 +93,10 @@ pipeline {
                         }
                         
                         /* Stash installers */
-                        stash includes: 'npm2mvn/target/media/*', name: 'linux-npm2mvn'
+                        stash includes: 'target/media/*', name: 'linux-npm2mvn'
                         
                         /* Stash updates.xml */
-                        dir('npm2mvn/target/media') {
+                        dir('target/media') {
                             stash includes: 'updates.xml', name: 'linux-npm2mvn-updates-xml'
                         }
                     }
@@ -136,10 +136,10 @@ pipeline {
                         }
                         
                         /* Stash installers */
-                        stash includes: 'npm2mvn/target/media/*', name: 'macos-npm2mvn'
+                        stash includes: 'target/media/*', name: 'macos-npm2mvn'
                         
                         /* Stash updates.xml */
-                        dir('npm2mvn/target/media') {
+                        dir('target/media') {
                             stash includes: 'updates.xml', name: 'macos-npm2mvn-updates-xml'
                         }
         				
