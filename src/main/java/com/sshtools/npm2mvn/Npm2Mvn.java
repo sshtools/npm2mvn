@@ -39,7 +39,10 @@ import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.compress.archivers.ArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
+import org.slf4j.bridge.SLF4JBridgeHandler;
 
+import com.sshtools.tinytemplate.Templates.TemplateModel;
+import com.sshtools.tinytemplate.Templates.TemplateProcessor;
 import com.sshtools.uhttpd.UHTTPD;
 import com.sshtools.uhttpd.UHTTPD.Status;
 import com.sshtools.uhttpd.UHTTPD.Transaction;
@@ -52,13 +55,18 @@ import picocli.CommandLine.Option;
 @Command(name = "npm2mvn", mixinStandardHelpOptions = true, description = "Npm to Maven proxy.", versionProvider = Npm2Mvn.Version.class)
 public class Npm2Mvn implements Callable<Integer> {
 	
+	static {
+        SLF4JBridgeHandler.removeHandlersForRootLogger();
+        SLF4JBridgeHandler.install();
+	}
+	
 	private final static List<String> STRIP_PREFIXES = Arrays.asList(
 			"package/dist/", 
 			"package/");
 	
-	final static Logger LOG = Logger.getLogger(Npm2Mvn.class.getName());
-	
-	private URI root = URI.create("https://registry.npmjs.org");
+	private final static Logger LOG = Logger.getLogger(Npm2Mvn.class.getName());
+	private final static int DEFAULT_HTTP_PORT = 9080;
+	private final static URI root = URI.create("https://registry.npmjs.org");
 
 	private final class TeeInputStream extends FilterInputStream {
 		private final OutputStream out;
@@ -111,8 +119,8 @@ public class Npm2Mvn implements Callable<Integer> {
 	@Option(names = {"-p", "--path"}, description = "Root path under which artifacts are served from. If omitted, will be '/'")
 	private Optional<String> path;
 	
-	@Option(names = {"-g", "--group"}, description = "The group id to serve all packages as. Defaults to 'npm'")
-	private String servedGroupId = "npm";
+	@Option(names = {"-g", "--group-id"}, description = "The group id to serve all packages as. Defaults to 'npm'")
+	private Optional<String> servedGroupId;
 	
 	@Option(names = {"-C", "--cache-dir"}, description = "The directory where artifacts are cached")
 	private Optional<Path> cacheDir;
@@ -121,22 +129,51 @@ public class Npm2Mvn implements Callable<Integer> {
 	private Optional<String> bindAddress;
 	
 	@Option(names = {"-P", "--http-port"}, description = "The port on which plain HTTP requests will be accepted.")
-	private int httpPort = 9080;
+	private Optional<Integer> httpPort;
+	
+	private final TemplateProcessor processor;
 	
 	public Npm2Mvn() {
+		processor = new TemplateProcessor.Builder().
+				build();
 	}
 
 	@Override
 	public Integer call() throws Exception {
 		var bldr = UHTTPD.server();
-		bldr.withHttp(httpPort);
-		bindAddress.ifPresent(addr-> bldr.withHttpAddress(addr));
-		bldr.get(path.map(p -> p.endsWith("/") ? p : p + "/").orElse("/") + "(.*)", this::handle);
+		bldr.withHttp(httpPort());
+		bindAddress().ifPresent(addr-> bldr.withHttpAddress(addr));
+		bldr.get(path().map(p -> p.endsWith("/") ? p : p + "/").orElse("/") + "(.*)", this::handle);
+		bldr.get(".*\\.html", this::homePage);
+		bldr.get("/", this::homePage);
+		bldr.withClasspathResources("/(.*)", getClass().getClassLoader(), "com/sshtools/npm2mvn/");
 		
 		var srvr = bldr.build();
 		LOG.info(format("Caching to {0}", cacheDir()));
 		srvr.run();
 		return 0;
+	}
+	
+	private void homePage(Transaction tx) {
+		tx.response("text/html", 
+			processor.process(TemplateModel.ofResource(Npm2Mvn.class, "Npm2Mvn.html"))
+		);
+	}
+	
+	private int httpPort() {
+		return httpPort.orElseGet(() -> Integer.parseInt(System.getProperty("port", String.valueOf(DEFAULT_HTTP_PORT))));
+	}
+	
+	private Optional<String> bindAddress() {
+		return bindAddress.or(() -> Optional.ofNullable(System.getProperty("bindAddress")));
+	}
+	
+	private Optional<String> path() {
+		return path.or(() -> Optional.ofNullable(System.getProperty("path")));
+	}
+	
+	private String servedGroupId() {
+		return servedGroupId.orElseGet(() -> System.getProperty("groupId", "npm"));
 	}
 	
 	private void handle(Transaction tx) {
@@ -149,7 +186,7 @@ public class Npm2Mvn implements Callable<Integer> {
 				var artifactId = pathParts[pathParts.length - 3];
 				var groupId = String.join(".", Arrays.asList(pathParts).subList(0, pathParts.length - 3));
 				
-				if(!groupId.equals(servedGroupId)) {
+				if(!groupId.equals(servedGroupId())) {
 					throw new NoSuchFileException(groupId);
 				}
 				
@@ -191,7 +228,13 @@ public class Npm2Mvn implements Callable<Integer> {
 	}
 	
 	private Path cacheDir() {
-		return this.cacheDir.orElseGet(() -> Paths.get(System.getProperty("user.home")).resolve(".m2").resolve("npm2mvn").resolve("cache"));
+		return this.cacheDir.orElseGet(() -> {
+			var cacheDirProp = System.getProperty("cacheDir");
+			if(cacheDirProp == null)
+				return Paths.get(System.getProperty("user.home")).resolve(".m2").resolve("npm2mvn").resolve("cache");
+			else
+				return Paths.get(cacheDirProp);
+		});
 	}
 	
 	private InputStream getPomSha1(String filename, String version, String artifactId, String groupId) throws IOException, NoSuchAlgorithmException {

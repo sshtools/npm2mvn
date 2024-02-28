@@ -1,0 +1,9 @@
+body {
+	background-color: black;
+	color: white;
+}
+
+.codeblock {
+	font-familty: Monospace;
+	background-color: #111;
+}
