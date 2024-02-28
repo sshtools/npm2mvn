@@ -1420,14 +1420,14 @@ killall -s SIGHUP dbus-daemon
 </preUninstallScript>
     </linuxDeb>
     <macosFolder name="macOS Folder" id="132" architecture="universal" signLaunchers="true">
-      <jreBundle jdkProviderId="AdoptOpenJDK" release="17/jdk-17.0.4.1+1" overrideJdkRelease="true" />
+      <jreBundle jdkProviderId="AdoptOpenJDK-OpenJ9" release="21/jdk-21.0.2+13_openj9-0.43.0" />
     </macosFolder>
     <unixInstaller name="Linux Amd64 Installer" id="198" mediaFileName="npm2mvn-${compiler:sys.platform}-amd64-${compiler:sys.version}" />
     <unixInstaller name="Linux Aarch64 Installer" id="201" mediaFileName="npm2mvn-${compiler:sys.platform}-aarch64-${compiler:sys.version}">
-      <jreBundle platform="linux-aarch64" />
+      <jreBundle jdkProviderId="AdoptOpenJDK-OpenJ9" release="21/jdk-21.0.2+13_openj9-0.43.0" platform="linux-aarch64" />
     </unixInstaller>
     <unixInstaller name="Linux Armhf Installer" id="204" mediaFileName="npm2mvn-${compiler:sys.platform}-armhf-${compiler:sys.version}">
-      <jreBundle jdkProviderId="Adoptium" release="17/jdk-17.0.6+10" overrideJdkRelease="true" platform="linux-arm" />
+      <jreBundle jdkProviderId="Liberica" release="21/21.0.2+14" overrideJdkRelease="true" platform="linux-arm32-vfp-hflt" />
     </unixInstaller>
   </mediaSets>
   <buildOptions faster="true" disableSigning="true" />
