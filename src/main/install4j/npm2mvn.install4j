@@ -1420,7 +1420,7 @@ killall -s SIGHUP dbus-daemon
 </preUninstallScript>
     </linuxDeb>
     <macosFolder name="macOS Folder (x64)" id="132" mediaFileName="npm2mvn-${compiler:sys.platform}-x64-${compiler:sys.version}" signLaunchers="true">
-      <jreBundle jdkProviderId="JBR" release="21/21.0.2-b375.1" usePack200="false" />
+      <jreBundle jdkProviderId="JBR" release="21/21.0.2-b375.1" usePack200="false" overrideJdkRelease="true" />
     </macosFolder>
     <unixInstaller name="Linux Amd64 Installer" id="198" mediaFileName="npm2mvn-${compiler:sys.platform}-amd64-${compiler:sys.version}" />
     <unixInstaller name="Linux Aarch64 Installer" id="201" mediaFileName="npm2mvn-${compiler:sys.platform}-aarch64-${compiler:sys.version}">
@@ -1430,7 +1430,7 @@ killall -s SIGHUP dbus-daemon
       <jreBundle jdkProviderId="Liberica" release="21/21.0.2+14" overrideJdkRelease="true" platform="linux-arm32-vfp-hflt" />
     </unixInstaller>
     <macosFolder name="macOS Folder (aarch64)" id="219" mediaFileName="npm2mvn-${compiler:sys.platform}-aarch64-${compiler:sys.version}" architecture="aarch64" signLaunchers="true">
-      <jreBundle jdkProviderId="AdoptOpenJDK" release="21/jdk-21.0.2+13" />
+      <jreBundle jdkProviderId="JBR" release="21/21.0.2-b375.1" overrideJdkRelease="true" />
     </macosFolder>
   </mediaSets>
   <buildOptions faster="true" disableSigning="true" />
