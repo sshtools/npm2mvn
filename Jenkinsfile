@@ -74,7 +74,7 @@ pipeline {
                                 configFile(
                                     fileId: "${env.BUILD_PROPERTIES_ID}",  
                                     replaceTokens: true,
-                                    targetLocation: "hypersocket.build.properties", 
+                                    targetLocation: "jadaptive.build.properties", 
                                     variable: "BUILD_PROPERTIES"
                                 )
                             ]) {
@@ -84,7 +84,7 @@ pipeline {
                                 ],
                                 globalMavenSettingsConfig: "${env.MAVEN_CONFIG_ID}"
                             ) {
-                                sh 'mvn -pl npm2mvn ' +
+                                sh 'mvn ' +
                                     '-U -Pinstallers  -Dbuild.projectProperties="$BUILD_PROPERTIES" ' +
                                     '-Dinstall4j.disableSigning=true ' +
                                     '-Dinstall4j.mediaTypes=unixInstaller,unixArchive,linuxRPM,linuxDeb ' +
@@ -118,7 +118,7 @@ pipeline {
                                 configFile(
                                     fileId: "${env.BUILD_PROPERTIES_ID}",  
                                     replaceTokens: true,
-                                    targetLocation: "hypersocket.build.properties", 
+                                    targetLocation: "jadative.build.properties", 
                                     variable: "BUILD_PROPERTIES"
                                 )
                             ]) {
