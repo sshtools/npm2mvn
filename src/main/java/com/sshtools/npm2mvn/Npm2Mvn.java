@@ -128,6 +128,9 @@ public class Npm2Mvn implements Callable<Integer> {
 	@Option(names = {"-b", "--bind-address"}, description = "The address to bind to. If not specified, localhost will be used.")
 	private Optional<String> bindAddress;
 	
+	@Option(names = {"-w", "--web-resources"}, description = "A single index.html, as well as any non .html resources will be served from this location.")
+	private Optional<Path> webResources;
+	
 	@Option(names = {"-P", "--http-port"}, description = "The port on which plain HTTP requests will be accepted.")
 	private Optional<Integer> httpPort;
 	
@@ -146,6 +149,8 @@ public class Npm2Mvn implements Callable<Integer> {
 		bldr.get(path().map(p -> p.endsWith("/") ? p : p + "/").orElse("/") + "(.*)", this::handle);
 		bldr.get(".*\\.html", this::homePage);
 		bldr.get("/", this::homePage);
+		
+		webResources().ifPresent(p -> bldr.withFileResources("/(.*)", p));
 		bldr.withClasspathResources("/(.*)", getClass().getClassLoader(), "com/sshtools/npm2mvn/");
 		
 		var srvr = bldr.build();
@@ -156,12 +161,16 @@ public class Npm2Mvn implements Callable<Integer> {
 	
 	private void homePage(Transaction tx) {
 		tx.response("text/html", 
-			processor.process(TemplateModel.ofResource(Npm2Mvn.class, "Npm2Mvn.html"))
+			processor.process(TemplateModel.ofResource(Npm2Mvn.class, "index.html"))
 		);
 	}
 	
 	private int httpPort() {
 		return httpPort.orElseGet(() -> Integer.parseInt(System.getProperty("port", String.valueOf(DEFAULT_HTTP_PORT))));
+	}
+	
+	private Optional<Path> webResources() {
+		return webResources.or(() -> Optional.ofNullable(System.getProperty("webResources")).map(Paths::get));
 	}
 	
 	private Optional<String> bindAddress() {

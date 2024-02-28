@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <install4j version="10.0.7" transformSequenceNumber="10">
-  <directoryPresets config="../../../target" />
+  <directoryPresets config="../resources/com/sshtools" />
   <application name="Npm2Mvn" applicationId="3923-8463-7793-8732" mediaDir="../../target/media" mediaFilePattern="npm2mvn-${compiler:sys.platform}-${compiler:sys.version}" lzmaCompression="true" pack200Compression="true" shortName="npm2mvn" publisher="Jadaptive" publisherWeb="https://jadaptive.com" version="0.0.1-SNAPSHOT" allPathsRelative="true" macVolumeId="c911279a1b9f40fa" javaMinVersion="21" javaMaxVersion="21" jdkMode="jdk">
     <searchSequence>
       <directory location="jre" />
@@ -36,6 +36,9 @@
     <mountPoints>
       <mountPoint id="109" location="logs" />
       <mountPoint id="209" location="lib" />
+      <mountPoint id="220" location="web" />
+      <mountPoint id="221" location="web/sample" />
+      <mountPoint id="222" location="web/live" />
     </mountPoints>
     <entries>
       <dirEntry mountPoint="209" file="../../../target" subDirectory="target">
@@ -51,6 +54,7 @@
         </exclude>
       </dirEntry>
       <dirEntry mountPoint="209" file="../../../target/dependencies" subDirectory="dependencies" />
+      <dirEntry mountPoint="221" file="../resources/com/sshtools/npm2mvn" overwriteMode="1" fileMode="444" uninstallMode="2" overrideFileMode="true" overrideOverwriteMode="true" overrideUninstallMode="true" subDirectory="npm2mvn" />
     </entries>
   </files>
   <launchers>
@@ -72,7 +76,10 @@
 #path=/some/path
 
 # The group id to use for all transformed packages
-#groupId=npm</content>
+#groupId=npm
+
+# Where web resources (the mini home page) are found
+webResources=web/live</content>
       </vmOptionsFile>
     </launcher>
     <launcher name="npm2mvn-console" id="70" unixAutoStart="false">
@@ -93,7 +100,10 @@
 #path=/some/path
 
 # The group id to use for all transformed packages
-#groupId=npm</content>
+#groupId=npm
+
+# Where web resources (the mini home page) are found
+webResources=web/live</content>
       </vmOptionsFile>
     </launcher>
     <launcher name="jaul-registration" id="216">
