@@ -57,18 +57,14 @@
     <url>https://github.com/sshtools/npm2mvn</url>
     <description>
         Include NPM packages in your Maven projects as just another type of
-        dependency.
-        Ideal for including popular libraries in your Java web applications.
+        dependency. Ideal for including popular libraries in your Java web applications.
         Npm2Mvn acts as an Http server that you just add as a new repository.
-        After adding
-        the repository, use dependency tags. All NPM depdencies have a groupId
+        After adding the repository, use dependency tags. All NPM depdencies have a groupId
         of 'npm'
 
         The jar generated from the NPM package will have all of it's resources
-        in a specific
-        path that includes the package name and version, as well as a generated
-        MANIFEST.MF,
-        Graal Native Image meta-data and a pom containing further transitive
+        in a specific path that includes the package name and version, as well as a generated
+        MANIFEST.MF, Graal Native Image meta-data and a pom containing further transitive
         dependencies.
     </description>
     <licenses>
@@ -548,6 +544,13 @@
         </profile>
     </profiles>
     <repositories>
+        <repository>
+            <id>ossrh-sshtools</id>
+            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+        </repository>
         <repository>
             <id>ej</id>
             <url>https://maven.ej-technologies.com/repository/</url>
