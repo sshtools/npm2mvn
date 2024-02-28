@@ -173,13 +173,13 @@ pipeline {
 	 		  	unstash 'macos-npm2mvn'
 	 		  	
 				/* Unstash  updates.xml */
-	 		  	dir('npm2mvn/target/media-macos') {
+	 		  	dir('target/media-macos') {
 	 		  		unstash 'macos-npm2mvn-updates-xml'
     			}
-	 		  	dir('npm2mvn/target/media-windows') {
+	 		  	dir('target/media-windows') {
 	 		  		unstash 'windows-npm2mvn-updates-xml'
     			}
-	 		  	dir('npm2mvn/target/media-linux') {
+	 		  	dir('target/media-linux') {
 	 		  		unstash 'linux-npm2mvn-updates-xml'
     			}
     			
