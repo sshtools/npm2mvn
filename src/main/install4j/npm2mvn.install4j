@@ -75,17 +75,19 @@
 #
 -DbindAddress=0.0.0.0
 
-# The path prefix for all requests
-#-Dpath=/some/path
-
-# The group id to use for all transformed packages
-#-DgroupId=npm
-
 # Where web resources (the mini home page) are found
 -DwebResources=web/live
 
 # Where access logs will be stores
--DaccessLogs=logs</content>
+-DaccessLogs=logs
+
+# It is recommended the options below are not changed unless you have special requirements
+
+# The path prefix for all requests
+#-Dpath=/some/path
+
+# The group id to use for all transformed packages
+#-DgroupId=npm</content>
       </vmOptionsFile>
     </launcher>
     <launcher name="npm2mvn-console" id="70" unixAutoStart="false">
@@ -105,17 +107,19 @@
 #
 -DbindAddress=0.0.0.0
 
-# The path prefix for all requests
-#-Dpath=/some/path
-
-# The group id to use for all transformed packages
-#-DgroupId=npm
-
 # Where web resources (the mini home page) are found
 -DwebResources=web/live
 
 # Where access logs will be stores
--DaccessLogs=logs</content>
+-DaccessLogs=logs
+
+# It is recommended the options below are not changed unless you have special requirements
+
+# The path prefix for all requests
+#-Dpath=/some/path
+
+# The group id to use for all transformed packages
+#-DgroupId=npm</content>
       </vmOptionsFile>
     </launcher>
     <launcher name="jaul-registration" id="216">
