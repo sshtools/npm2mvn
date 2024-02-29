@@ -66,20 +66,23 @@
         </modulePath>
       </java>
       <vmOptionsFile mode="content">
-        <content># Port for Http requests. Defaults to 9080
-#port=9080
+        <content># Lines starting with a '#' are commented out. 
+
+# Port for Http requests. Defaults to 9080
+#-Dport=9080
 
 # Address to listen on, defaults to localhost. 
-#bindAddress=0.0.0.0
+#
+-DbindAddress=0.0.0.0
 
 # The path prefix for all requests
-#path=/some/path
+#-Dpath=/some/path
 
 # The group id to use for all transformed packages
-#groupId=npm
+#-DgroupId=npm
 
 # Where web resources (the mini home page) are found
-webResources=web/live</content>
+-DwebResources=web/live</content>
       </vmOptionsFile>
     </launcher>
     <launcher name="npm2mvn-console" id="70" unixAutoStart="false">
@@ -90,20 +93,23 @@ webResources=web/live</content>
         </modulePath>
       </java>
       <vmOptionsFile mode="content">
-        <content># Port for Http requests. Defaults to 9080
-#port=9080
+        <content># Lines starting with a '#' are commented out. 
+
+# Port for Http requests. Defaults to 9080
+#-Dport=9080
 
 # Address to listen on, defaults to localhost. 
-#bindAddress=0.0.0.0
+#
+-DbindAddress=0.0.0.0
 
 # The path prefix for all requests
-#path=/some/path
+#-Dpath=/some/path
 
 # The group id to use for all transformed packages
-#groupId=npm
+#-DgroupId=npm
 
 # Where web resources (the mini home page) are found
-webResources=web/live</content>
+-DwebResources=web/live</content>
       </vmOptionsFile>
     </launcher>
     <launcher name="jaul-registration" id="216">
