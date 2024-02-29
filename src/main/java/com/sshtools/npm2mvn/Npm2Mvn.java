@@ -151,7 +151,7 @@ public class Npm2Mvn implements Callable<Integer> {
 	@Option(names = {"-W", "--keystore-password"}, description = "The password for the keystore. Defaults to changeit.")
 	private Optional<String> keystorePassword;
 	
-	@Option(names = {"-K", "--key-password"}, description = "The password for the key. Defaults to changeit.")
+	@Option(names = {"-k", "--key-password"}, description = "The password for the key. Defaults to changeit.")
 	private Optional<String> keyPassword;
 	
 	@Option(names = {"-T", "--keystore-type"}, description = "The type of keystore.")
