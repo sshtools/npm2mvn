@@ -82,7 +82,10 @@
 #-DgroupId=npm
 
 # Where web resources (the mini home page) are found
--DwebResources=web/live</content>
+-DwebResources=web/live
+
+# Where access logs will be stores
+-DaccessLogs=logs</content>
       </vmOptionsFile>
     </launcher>
     <launcher name="npm2mvn-console" id="70" unixAutoStart="false">
@@ -109,7 +112,10 @@
 #-DgroupId=npm
 
 # Where web resources (the mini home page) are found
--DwebResources=web/live</content>
+-DwebResources=web/live
+
+# Where access logs will be stores
+-DaccessLogs=logs</content>
       </vmOptionsFile>
     </launcher>
     <launcher name="jaul-registration" id="216">

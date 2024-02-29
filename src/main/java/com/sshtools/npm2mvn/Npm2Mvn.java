@@ -5,6 +5,7 @@ import static java.text.MessageFormat.format;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -44,6 +45,7 @@ import org.slf4j.bridge.SLF4JBridgeHandler;
 import com.sshtools.tinytemplate.Templates.TemplateModel;
 import com.sshtools.tinytemplate.Templates.TemplateProcessor;
 import com.sshtools.uhttpd.UHTTPD;
+import com.sshtools.uhttpd.UHTTPD.NCSALoggerBuilder;
 import com.sshtools.uhttpd.UHTTPD.Status;
 import com.sshtools.uhttpd.UHTTPD.Transaction;
 
@@ -131,8 +133,14 @@ public class Npm2Mvn implements Callable<Integer> {
 	@Option(names = {"-w", "--web-resources"}, description = "A single index.html, as well as any non .html resources will be served from this location.")
 	private Optional<Path> webResources;
 	
+	@Option(names = {"-a", "--access-logs"}, description = "Location of NCSA format access logs. If not supplied, no logs will be generated.")
+	private Optional<Path> accessLogs;
+	
 	@Option(names = {"-P", "--http-port"}, description = "The port on which plain HTTP requests will be accepted.")
 	private Optional<Integer> httpPort;
+	
+	@Option(names = {"-r", "--resource-path-pattern"}, description = "The pattern to use for paths of resources in generated artifacts. Default is '%g/%a/%v`. %g is replaced the group Id, %a is replaced by the artifact Id, and %v is replaced by the version.")
+	private Optional<String> resourcePathPattern;
 	
 	private final TemplateProcessor processor;
 	
@@ -150,7 +158,13 @@ public class Npm2Mvn implements Callable<Integer> {
 		bldr.get(".*\\.html", this::homePage);
 		bldr.get("/", this::homePage);
 		
-		webResources().ifPresent(p -> bldr.withFileResources("/(.*)", p));
+		optionalPath(accessLogs, "accessLogs").ifPresent(p -> bldr.withLogger(
+			new NCSALoggerBuilder().
+				withDirectory(p).
+				build()
+		));
+		
+		optionalPath(webResources, "webResources").ifPresent(p -> bldr.withFileResources("/(.*)", p));
 		bldr.withClasspathResources("/(.*)", getClass().getClassLoader(), "com/sshtools/npm2mvn");
 		
 		var srvr = bldr.build();
@@ -168,7 +182,7 @@ public class Npm2Mvn implements Callable<Integer> {
 	}
 
 	private TemplateModel findHomeTemplate() {
-		var pathOr = webResources();
+		var pathOr = optionalPath(webResources, "webResources");
 		if(pathOr.isPresent()) {
 			var path = pathOr.get().resolve("index.html");
 			if(Files.exists(path)) {
@@ -183,9 +197,9 @@ public class Npm2Mvn implements Callable<Integer> {
 		return httpPort.orElseGet(() -> Integer.parseInt(System.getProperty("port", String.valueOf(DEFAULT_HTTP_PORT))));
 	}
 	
-	private Optional<Path> webResources() {
-		return webResources.or(() -> { 
-			var res = System.getProperty("webResources");
+	private Optional<Path> optionalPath(Optional<Path> path, String key) {
+		return path.or(() -> { 
+			var res = System.getProperty(key);
 			return Optional.ofNullable(res).map(Paths::get); 
 		});
 	}
@@ -200,6 +214,10 @@ public class Npm2Mvn implements Callable<Integer> {
 	
 	private String servedGroupId() {
 		return servedGroupId.orElseGet(() -> System.getProperty("groupId", "npm"));
+	}
+	
+	private String resourcePathPattern() {
+		return resourcePathPattern.orElseGet(() -> System.getProperty("resourcePathPattern", "%g/%a/%v"));
 	}
 	
 	private void handle(Transaction tx) {
@@ -446,7 +464,13 @@ public class Npm2Mvn implements Callable<Integer> {
 	
 	private InputStream tarballToJar(InputStream body, String filename, String artifactId, String groupId, String version) throws IOException {
 		var tmpDir = Files.createTempDirectory("npmx");
-		var webDir = tmpDir.resolve("web/framework/" + groupId + "/" + artifactId + "/" + version);
+		var resourcePathPattern = resourcePathPattern().
+				replace("%g", groupId).
+				replace("%a", artifactId).
+				replace("%v", version)
+		;
+		var crossPlatformPath = resourcePathPattern.replace("\\", "/");
+		var webDir = tmpDir.resolve(resourcePathPattern.replace("/", File.separator).replace("\\", File.separator));
 		
 		createDirectories(webDir);
 		try (var inputStream = new BufferedInputStream(body);
@@ -476,9 +500,10 @@ public class Npm2Mvn implements Callable<Integer> {
 		try (var wrtr = new PrintWriter(Files.newOutputStream(manifest))) {
 			wrtr.println("Manifest-Version: 1.0");
 			wrtr.println("Automatic-Module-Name: " + moduleName);
-			wrtr.println("X-Bootlace-NPM: " + moduleName);
-			wrtr.println("X-Bootlace-NPM-GAV: npm:" + artifactId + ":" + version);
-			wrtr.println("X-Bootlace-NPM-Version: " + version);
+			wrtr.println("X-NPM: " + moduleName);
+			wrtr.println("X-NPM-Resources: " + crossPlatformPath);
+			wrtr.println("X-NPM-GAV: " + groupId + ":" + artifactId + ":" + version);
+			wrtr.println("X-NPM-Version: " + version);
 		}
 		
 		/* Generate a pom.xml */
@@ -547,7 +572,7 @@ public class Npm2Mvn implements Callable<Integer> {
 					if (!path.equals(tmpDir)) {
 						if (!Files.isDirectory(path)) {
 							var rel = tmpDir.relativize(path);
-							var entry = new JarEntry(rel.toString() + (Files.isDirectory(path) ? "/" : ""));
+							var entry = new JarEntry(rel.toString().replace("\\", "/") + (Files.isDirectory(path) ? "/" : ""));
 							entry.setTime(Files.getLastModifiedTime(path).toMillis());
 							out.putNextEntry(entry);
 							try (var fin = Files.newInputStream(path)) {
@@ -562,9 +587,7 @@ public class Npm2Mvn implements Callable<Integer> {
 			});
 		}
 
-		var in = Files.newInputStream(tmpFile);
-		return new FilterInputStream(in) {
-
+		return new FilterInputStream(Files.newInputStream(tmpFile)) {
 			@Override
 			public void close() throws IOException {
 				try {
@@ -573,7 +596,6 @@ public class Npm2Mvn implements Callable<Integer> {
 					Files.delete(tmpFile);
 				}
 			}
-
 		};
 	}
 
