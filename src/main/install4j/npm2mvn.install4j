@@ -28,11 +28,7 @@
         <entry>jline-native*</entry>
       </macSearchedJars>
     </codeSigning>
-    <jreBundles jdkProviderId="AdoptOpenJDK-OpenJ9" release="21/jdk-21.0.2+13_openj9-0.43.0">
-      <modules>
-        <defaultModules set="minimum" />
-      </modules>
-    </jreBundles>
+    <jreBundles jdkProviderId="AdoptOpenJDK" release="21/jdk-21.0.2+13" />
   </application>
   <files>
     <mountPoints>
@@ -1486,7 +1482,9 @@ killall -s SIGHUP dbus-daemon
     <macosFolder name="macOS Folder (x64)" id="132" mediaFileName="npm2mvn-${compiler:sys.platform}-x64-${compiler:sys.version}" signLaunchers="true">
       <jreBundle jdkProviderId="JBR" release="21/21.0.2-b375.1" usePack200="false" overrideJdkRelease="true" />
     </macosFolder>
-    <unixInstaller name="Linux Amd64 Installer" id="198" mediaFileName="npm2mvn-linux-amd64-${compiler:sys.version}" />
+    <unixInstaller name="Linux Amd64 Installer" id="198" mediaFileName="npm2mvn-linux-amd64-${compiler:sys.version}">
+      <jreBundle usePack200="false" />
+    </unixInstaller>
     <unixInstaller name="Linux Aarch64 Installer" id="201" mediaFileName="npm2mvn-linux-aarch64-${compiler:sys.version}">
       <jreBundle jdkProviderId="AdoptOpenJDK-OpenJ9" release="21/jdk-21.0.2+13_openj9-0.43.0" platform="linux-aarch64" />
     </unixInstaller>
