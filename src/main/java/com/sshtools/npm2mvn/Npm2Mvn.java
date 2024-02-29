@@ -151,7 +151,7 @@ public class Npm2Mvn implements Callable<Integer> {
 		bldr.get("/", this::homePage);
 		
 		webResources().ifPresent(p -> bldr.withFileResources("/(.*)", p));
-		bldr.withClasspathResources("/(.*)", getClass().getClassLoader(), "com/sshtools/npm2mvn/");
+		bldr.withClasspathResources("/(.*)", getClass().getClassLoader(), "com/sshtools/npm2mvn");
 		
 		var srvr = bldr.build();
 		LOG.info(format("Caching to {0}", cacheDir()));
