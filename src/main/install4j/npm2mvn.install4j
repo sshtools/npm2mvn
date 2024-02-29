@@ -39,6 +39,7 @@
       <mountPoint id="220" location="web" />
       <mountPoint id="221" location="web/sample" />
       <mountPoint id="222" location="web/live" />
+      <mountPoint id="230" location="ssl" />
     </mountPoints>
     <entries>
       <dirEntry mountPoint="209" file="../../../target" subDirectory="target">
@@ -68,11 +69,8 @@
       <vmOptionsFile mode="content">
         <content># Lines starting with a '#' are commented out. 
 
-# Port for Http requests. Defaults to 9080 if no https portt
-#-DhttpPort=80
-
-# Port for Https requests.
-#-DhttpsPort=443
+# Port for Http requests. Defaults to 9080
+#-Dport=9080
 
 # Address to listen on, defaults to localhost. 
 #
@@ -118,11 +116,8 @@
       <vmOptionsFile mode="content">
         <content># Lines starting with a '#' are commented out. 
 
-# Port for Http requests. Defaults to 9080 if no https portt
-#-DhttpPort=80
-
-# Port for Https requests.
-#-DhttpsPort=443
+# Port for Http requests. Defaults to 9080
+#-Dport=9080
 
 # Address to listen on, defaults to localhost. 
 #
