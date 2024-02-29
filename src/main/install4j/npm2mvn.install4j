@@ -71,7 +71,7 @@
 # Port for Http requests. Defaults to 9080 if no https portt
 #-DhttpPort=80
 
-# Port for Http requests.
+# Port for Https requests.
 #-DhttpsPort=443
 
 # Address to listen on, defaults to localhost. 
@@ -109,7 +109,7 @@
 # Port for Http requests. Defaults to 9080 if no https portt
 #-DhttpPort=80
 
-# Port for Http requests.
+# Port for Https requests.
 #-DhttpsPort=443
 
 # Address to listen on, defaults to localhost. 
