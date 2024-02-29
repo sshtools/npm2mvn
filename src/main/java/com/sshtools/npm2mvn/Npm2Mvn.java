@@ -145,7 +145,7 @@ public class Npm2Mvn implements Callable<Integer> {
 	@Option(names = {"-r", "--resource-path-pattern"}, description = "The pattern to use for paths of resources in generated artifacts. Default is '%%g/%%a/%%v`. %%g is replaced the group Id, %%a is replaced by the artifact Id, and %%v is replaced by the version.")
 	private Optional<String> resourcePathPattern;
 	
-	@Option(names = {"-K", "--keystore"}, description = "The path to the keystore. Uses $HOME/.keystore if not specified.")
+	@Option(names = {"-K", "--keystore-file"}, description = "The path to the keystore. Uses $HOME/.keystore if not specified.")
 	private Optional<Path> keystoreFile;
 	
 	@Option(names = {"-W", "--keystore-password"}, description = "The password for the keystore. Defaults to changeit.")
@@ -184,7 +184,7 @@ public class Npm2Mvn implements Callable<Integer> {
 				bldr.withHttps(p);
 				bindAddress.ifPresent(addr-> bldr.withHttpsAddress(addr));
 			});
-			optionalPath(keystoreFile, "keystore").ifPresent(bldr::withKeyStoreFile);
+			optionalPath(keystoreFile, "keystoreFile").ifPresent(bldr::withKeyStoreFile);
 			keystorePassword.ifPresent(pw -> bldr.withKeyStorePassword(pw.toCharArray()));
 			keyPassword.ifPresent(pw -> bldr.withKeyPassword(pw.toCharArray()));
 			keystoreType.ifPresent(bldr::withKeyStoreType);
