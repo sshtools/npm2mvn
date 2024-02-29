@@ -1,6 +1,6 @@
-# Npm2Mvn
+# ![NPM](src/web/npm.png "NPM") 2 ![Maven](src/web/maven.png "Maven")
 
-A simple proxy that makes ![NPM](src/web/npm.png "NPM") packages appear as it they are ![Maven](src/web/maven.png "Maven") artifacts.
+A simple proxy that makes [Npm](https://www.npmjs.com/) packages appear as if they are [Maven](https://mvnrepository.com/repos/central) artifacts.
 
 The intended use for this is including Javascript resources such as Jquery, Bootstrap,
 and more in Java web applications.
