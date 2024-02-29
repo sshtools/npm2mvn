@@ -84,6 +84,18 @@
 # Where access logs will be stored
 -DaccessLogs=logs
 
+# Where SSL keystore is located
+-Dkeystore=ssl/keystore
+
+# The password for the keystore
+#-DkeystorePassword=changeit
+
+# The password for the key
+#-DkeyPassword=changeit
+
+# The type of key store
+#-DkeystoreType=JKS
+
 # It is recommended the options below are not changed unless you have special requirements
 
 # The cache directory. Defaults to $HOME/.m2/npm2mvn/cache
@@ -121,6 +133,18 @@
 
 # Where access logs will be stored
 -DaccessLogs=logs
+
+# Where SSL keystore is located
+-Dkeystore=ssl/keystore
+
+# The password for the keystore
+#-DkeystorePassword=changeit
+
+# The password for the key
+#-DkeyPassword=changeit
+
+# The type of key store
+#-DkeystoreType=JKS
 
 # It is recommended the options below are not changed unless you have special requirements
 

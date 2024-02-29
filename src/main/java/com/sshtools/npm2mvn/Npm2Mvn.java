@@ -145,6 +145,18 @@ public class Npm2Mvn implements Callable<Integer> {
 	@Option(names = {"-r", "--resource-path-pattern"}, description = "The pattern to use for paths of resources in generated artifacts. Default is '%%g/%%a/%%v`. %%g is replaced the group Id, %%a is replaced by the artifact Id, and %%v is replaced by the version.")
 	private Optional<String> resourcePathPattern;
 	
+	@Option(names = {"-K", "--keystore"}, description = "The path to the keystore. Uses $HOME/.keystore if not specified.")
+	private Optional<Path> keystoreFile;
+	
+	@Option(names = {"-W", "--keystore-password"}, description = "The password for the keystore. Defaults to changeit.")
+	private Optional<String> keystorePassword;
+	
+	@Option(names = {"-K", "--key-password"}, description = "The password for the key. Defaults to changeit.")
+	private Optional<String> keyPassword;
+	
+	@Option(names = {"-T", "--keystore-type"}, description = "The type of keystore.")
+	private Optional<String> keystoreType;
+	
 	private final TemplateProcessor processor;
 	
 	public Npm2Mvn() {
@@ -157,16 +169,27 @@ public class Npm2Mvn implements Callable<Integer> {
 		var bldr = UHTTPD.server();
 		
 		/* Ports and address */
+		
 		var http = httpPort();
 		var https = httpsPort();
+		var bindAddress = bindAddress();
+		
 		if(http.isEmpty() && https.isEmpty()) {
 			LOG.info("Neither http or https specific ports supplie, falling back to http only on port " + DEFAULT_HTTP_PORT);
+			bldr.withHttp(DEFAULT_HTTP_PORT);
 		}
 		else  {
 			http.ifPresent(p -> bldr.withHttp(p));
-			https.ifPresent(p -> bldr.withHttps(p));
+			https.ifPresent(p -> { 
+				bldr.withHttps(p);
+				bindAddress.ifPresent(addr-> bldr.withHttpsAddress(addr));
+			});
+			optionalPath(keystoreFile, "keystore").ifPresent(bldr::withKeyStoreFile);
+			keystorePassword.ifPresent(pw -> bldr.withKeyStorePassword(pw.toCharArray()));
+			keyPassword.ifPresent(pw -> bldr.withKeyPassword(pw.toCharArray()));
+			keystoreType.ifPresent(bldr::withKeyStoreType);
 		}
-		bindAddress().ifPresent(addr-> bldr.withHttpAddress(addr));
+		bindAddress.ifPresent(addr-> bldr.withHttpAddress(addr));
 		
 		/* Mappings */
 		bldr.get(path().map(p -> p.endsWith("/") ? p : p + "/").orElse("/") + "(.*)", this::handle);
