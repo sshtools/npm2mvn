@@ -548,9 +548,12 @@ public class Npm2Mvn implements Callable<Integer> {
 		}
 		
 		/* Generate the locator */
-		var locator = metaInf.resolve("LOCATOR." + groupId + "." + artifactId + ".NPM2MVN");
+		var locator = metaInf.resolve("LOCATOR." + groupId + "." + artifactId + ".properties");
 		try(var out = new PrintWriter(Files.newBufferedWriter(locator))) {
-			out.println(crossPlatformPath);
+			var props = new Properties();
+			props.setProperty("version", version);
+			props.setProperty("resource", crossPlatformPath);
+			props.store(out, "Npm2Mvn");
 		}
 		
 		/* Generate a pom.xml */
