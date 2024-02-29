@@ -29,7 +29,9 @@
       </macSearchedJars>
     </codeSigning>
     <jreBundles jdkProviderId="AdoptOpenJDK-OpenJ9" release="21/jdk-21.0.2+13_openj9-0.43.0">
-      <modules />
+      <modules>
+        <defaultModules set="minimum" />
+      </modules>
     </jreBundles>
   </application>
   <files>
@@ -83,7 +85,7 @@
 -DaccessLogs=logs
 
 # Where SSL keystore is located
--Dkeystore=ssl/keystore
+-DkeystoreFile=ssl/keystore
 
 # The password for the keystore
 #-DkeystorePassword=changeit
@@ -130,7 +132,7 @@
 -DaccessLogs=logs
 
 # Where SSL keystore is located
--Dkeystore=ssl/keystore
+-DkeystoreFile=ssl/keystore
 
 # The password for the keystore
 #-DkeystorePassword=changeit
