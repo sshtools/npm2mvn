@@ -172,7 +172,7 @@ public class Npm2Mvn implements Callable<Integer> {
 		
 		var http = httpPort();
 		var https = httpsPort();
-		var bindAddress = bindAddress();
+		var bindAddress = optionalString(this.bindAddress, "bindAddress");
 		
 		if(http.isEmpty() && https.isEmpty()) {
 			LOG.info("Neither http or https specific ports supplie, falling back to http only on port " + DEFAULT_HTTP_PORT);
@@ -185,14 +185,14 @@ public class Npm2Mvn implements Callable<Integer> {
 				bindAddress.ifPresent(addr-> bldr.withHttpsAddress(addr));
 			});
 			optionalPath(keystoreFile, "keystoreFile").ifPresent(bldr::withKeyStoreFile);
-			keystorePassword.ifPresent(pw -> bldr.withKeyStorePassword(pw.toCharArray()));
-			keyPassword.ifPresent(pw -> bldr.withKeyPassword(pw.toCharArray()));
-			keystoreType.ifPresent(bldr::withKeyStoreType);
+			optionalString(keystorePassword, "keystorePassword").ifPresent(pw -> bldr.withKeyStorePassword(pw.toCharArray()));
+			optionalString(keyPassword, "keyPassword").ifPresent(pw -> bldr.withKeyPassword(pw.toCharArray()));
+			optionalString(keystoreType, "keystoreType").ifPresent(bldr::withKeyStoreType);
 		}
 		bindAddress.ifPresent(addr-> bldr.withHttpAddress(addr));
 		
 		/* Mappings */
-		bldr.get(path().map(p -> p.endsWith("/") ? p : p + "/").orElse("/") + "(.*)", this::handle);
+		bldr.get(optionalString(path, "path").map(p -> p.endsWith("/") ? p : p + "/").orElse("/") + "(.*)", this::handle);
 		bldr.get(".*\\.html", this::homePage);
 		bldr.get("/", this::homePage);
 		optionalPath(webResources, "webResources").ifPresent(p -> bldr.withFileResources("/(.*)", p));
@@ -249,12 +249,8 @@ public class Npm2Mvn implements Callable<Integer> {
 		});
 	}
 	
-	private Optional<String> bindAddress() {
-		return bindAddress.or(() -> Optional.ofNullable(System.getProperty("bindAddress")));
-	}
-	
-	private Optional<String> path() {
-		return path.or(() -> Optional.ofNullable(System.getProperty("path")));
+	private Optional<String> optionalString(Optional<String> value, String key) {
+		return value.or(() -> Optional.ofNullable(System.getProperty(key)));
 	}
 	
 	private String servedGroupId() {
