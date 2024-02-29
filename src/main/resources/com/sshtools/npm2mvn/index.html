@@ -3,18 +3,18 @@
     <link href="index.css" rel="stylesheet"/>
 </html>
 <body>
-	<h1>Npm2Mvn</h1>
-	<p>A bridge between Npm and Maven</p>
-	<h2>Setup</h2>
+    <h1>Npm2Mvn</h1>
+    <p>A bridge between Npm and Maven</p>
+    <h2>Setup</h2>
     <h3>Repository</h3>
-	<p>First you must configure the <em>npm2mvn</em> repository.
-		Just add the following to your project
-		<code>pom.xml</code>
-	</p>
-	<pre class="codeblock">
+    <p>First you must configure the <em>npm2mvn</em> repository.
+        Just add the following to your project
+        <code>pom.xml</code>
+    </p>
+    <pre class="codeblock">
        &lt;repository&gt;
            &lt;id>npm2mvn&lt;/id&gt;
-           &lt;url>http://localhost:9080&lt;/url&gt;
+           &lt;url>${serverUrl}&lt;/url&gt;
        &lt;/repository&gt;
     </pre>
     <h3>Add Your Dependencies</h3>
@@ -22,14 +22,14 @@
     the version. The groupId for npm2mvn dependencies will always be <em>npm</em></p>
     <pre class="codeblock">
        &lt;dependency&gt;
-           &lt;groupId>npm&lt;/groupId&gt;
-           &lt;artifactId>npm&lt;/artifactId&gt;
-           &lt;version>5.3.1&lt;/url&gt;
+           &lt;groupId>${groupId}&lt;/groupId&gt;
+           &lt;artifactId>bootstrap&lt;/artifactId&gt;
+           &lt;version>5.3.1&lt;/version&gt;
        &lt;/dependency&gt;
        &lt;dependency&gt;
-           &lt;groupId>npm&lt;/groupId&gt;
+           &lt;groupId>${groupId}&lt;/groupId&gt;
            &lt;artifactId>bootstrap-icons&lt;/artifactId&gt;
-           &lt;version>1.11.0&lt;/url&gt;
+           &lt;version>1.11.0&lt;/version&gt;
        &lt;/dependency&gt;
     </pre>
     <h3>Access The Resource</h3>
@@ -42,6 +42,9 @@
     <small>In the real world, of course you wouldn't want to map every single resource like this,
     you would have your framework such as Spring Web or plain old Servlets map the classpath to some 
     namespace in the web URI. </small>
-    <a href="https://github.com/sshtools/npm2mvn/wiki">Find Out More</a>
+    <div>
+    <h2>Find Out More</h2>
+    On our <a href="https://github.com/sshtools/npm2mvn/wiki">GitHub project</a>.
+    </div>
 </body>
 </html>

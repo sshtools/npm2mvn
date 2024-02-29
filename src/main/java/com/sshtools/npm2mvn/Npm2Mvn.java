@@ -160,9 +160,23 @@ public class Npm2Mvn implements Callable<Integer> {
 	}
 	
 	private void homePage(Transaction tx) {
-		tx.response("text/html", 
-			processor.process(TemplateModel.ofResource(Npm2Mvn.class, "index.html"))
-		);
+		try(var templ = findHomeTemplate()) {
+			tx.response("text/html", processor.process(templ.
+					variable("serverUrl", tx.url()).
+					variable("groupId", servedGroupId())));
+		}
+	}
+
+	private TemplateModel findHomeTemplate() {
+		var pathOr = webResources();
+		if(pathOr.isPresent()) {
+			var path = pathOr.get().resolve("index.html");
+			if(Files.exists(path)) {
+				return TemplateModel.ofPath(path);
+			}
+			
+		}
+		return TemplateModel.ofResource(Npm2Mvn.class, "index.html");
 	}
 	
 	private int httpPort() {
@@ -170,7 +184,10 @@ public class Npm2Mvn implements Callable<Integer> {
 	}
 	
 	private Optional<Path> webResources() {
-		return webResources.or(() -> Optional.ofNullable(System.getProperty("webResources")).map(Paths::get));
+		return webResources.or(() -> { 
+			var res = System.getProperty("webResources");
+			return Optional.ofNullable(res).map(Paths::get); 
+		});
 	}
 	
 	private Optional<String> bindAddress() {

@@ -39,7 +39,7 @@
         <install4j.phase>stable</install4j.phase>
         <install4j.mediaTypes>windows,unixInstaller,macos,macosFolder,windowsArchive,unixArchive,linuxRPM,linuxDeb,macosArchive,macosFolderArchive</install4j.mediaTypes>
         <install4j.macPkcs12File>~/.jadaptive-developer-id.p12</install4j.macPkcs12File>
-        <install4j.updatesBase>http://localhost/${project.name}</install4j.updatesBase>
+        <install4j.updatesBase>https://sshtools-public.s3.eu-west-1.amazonaws.com/npm2mvn</install4j.updatesBase>
         <install4j.jaulAppId>com.sshtools.Npm2Mvn</install4j.jaulAppId>
         <install4j.jaulUpdaterId>133</install4j.jaulUpdaterId>
     </properties>
