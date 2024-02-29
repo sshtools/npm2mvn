@@ -78,7 +78,7 @@
 # Where web resources (the mini home page) are found
 -DwebResources=web/live
 
-# Where access logs will be stores
+# Where access logs will be stored
 -DaccessLogs=logs
 
 # It is recommended the options below are not changed unless you have special requirements
@@ -110,7 +110,7 @@
 # Where web resources (the mini home page) are found
 -DwebResources=web/live
 
-# Where access logs will be stores
+# Where access logs will be stored
 -DaccessLogs=logs
 
 # It is recommended the options below are not changed unless you have special requirements
