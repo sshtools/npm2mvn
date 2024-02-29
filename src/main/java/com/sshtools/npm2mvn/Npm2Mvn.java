@@ -139,7 +139,10 @@ public class Npm2Mvn implements Callable<Integer> {
 	@Option(names = {"-P", "--http-port"}, description = "The port on which plain HTTP requests will be accepted.")
 	private Optional<Integer> httpPort;
 	
-	@Option(names = {"-r", "--resource-path-pattern"}, description = "The pattern to use for paths of resources in generated artifacts. Default is '%g/%a/%v`. %g is replaced the group Id, %a is replaced by the artifact Id, and %v is replaced by the version.")
+	@Option(names = {"-S", "--https-port"}, description = "The port on which HTTPs requests will be accepted.")
+	private Optional<Integer> httpsPort;
+	
+	@Option(names = {"-r", "--resource-path-pattern"}, description = "The pattern to use for paths of resources in generated artifacts. Default is '%%g/%%a/%%v`. %%g is replaced the group Id, %%a is replaced by the artifact Id, and %%v is replaced by the version.")
 	private Optional<String> resourcePathPattern;
 	
 	private final TemplateProcessor processor;
@@ -152,24 +155,39 @@ public class Npm2Mvn implements Callable<Integer> {
 	@Override
 	public Integer call() throws Exception {
 		var bldr = UHTTPD.server();
-		bldr.withHttp(httpPort());
+		
+		/* Ports and address */
+		var http = httpPort();
+		var https = httpsPort();
+		if(http.isEmpty() && https.isEmpty()) {
+			LOG.info("Neither http or https specific ports supplie, falling back to http only on port " + DEFAULT_HTTP_PORT);
+		}
+		else  {
+			http.ifPresent(p -> bldr.withHttp(p));
+			https.ifPresent(p -> bldr.withHttps(p));
+		}
 		bindAddress().ifPresent(addr-> bldr.withHttpAddress(addr));
+		
+		/* Mappings */
 		bldr.get(path().map(p -> p.endsWith("/") ? p : p + "/").orElse("/") + "(.*)", this::handle);
 		bldr.get(".*\\.html", this::homePage);
 		bldr.get("/", this::homePage);
+		optionalPath(webResources, "webResources").ifPresent(p -> bldr.withFileResources("/(.*)", p));
+		bldr.withClasspathResources("/(.*)", getClass().getClassLoader(), "com/sshtools/npm2mvn");
 		
+		/* Request logs */
 		optionalPath(accessLogs, "accessLogs").ifPresent(p -> bldr.withLogger(
 			new NCSALoggerBuilder().
 				withDirectory(p).
 				build()
 		));
 		
-		optionalPath(webResources, "webResources").ifPresent(p -> bldr.withFileResources("/(.*)", p));
-		bldr.withClasspathResources("/(.*)", getClass().getClassLoader(), "com/sshtools/npm2mvn");
 		
+		/* Server */
 		var srvr = bldr.build();
 		LOG.info(format("Caching to {0}", cacheDir()));
 		srvr.run();
+		
 		return 0;
 	}
 	
@@ -193,8 +211,12 @@ public class Npm2Mvn implements Callable<Integer> {
 		return TemplateModel.ofResource(Npm2Mvn.class, "index.html");
 	}
 	
-	private int httpPort() {
-		return httpPort.orElseGet(() -> Integer.parseInt(System.getProperty("port", String.valueOf(DEFAULT_HTTP_PORT))));
+	private Optional<Integer> httpPort() {
+		return httpPort.or(() -> Optional.ofNullable(System.getProperty("httpPort", System.getProperty("port"))).map(Integer::parseInt));
+	}
+	
+	private Optional<Integer> httpsPort() {
+		return httpsPort.or(() -> Optional.ofNullable(System.getProperty("httpsPort")).map(Integer::parseInt));
 	}
 	
 	private Optional<Path> optionalPath(Optional<Path> path, String key) {

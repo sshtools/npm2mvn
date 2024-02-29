@@ -68,8 +68,11 @@
       <vmOptionsFile mode="content">
         <content># Lines starting with a '#' are commented out. 
 
-# Port for Http requests. Defaults to 9080
-#-Dport=9080
+# Port for Http requests. Defaults to 9080 if no https portt
+#-DhttpPort=80
+
+# Port for Http requests.
+#-DhttpsPort=443
 
 # Address to listen on, defaults to localhost. 
 #
@@ -82,6 +85,9 @@
 -DaccessLogs=logs
 
 # It is recommended the options below are not changed unless you have special requirements
+
+# The cache directory. Defaults to $HOME/.m2/npm2mvn/cache
+#-DcacheDir=/some/path
 
 # The path prefix for all requests
 #-Dpath=/some/path
@@ -100,8 +106,11 @@
       <vmOptionsFile mode="content">
         <content># Lines starting with a '#' are commented out. 
 
-# Port for Http requests. Defaults to 9080
-#-Dport=9080
+# Port for Http requests. Defaults to 9080 if no https portt
+#-DhttpPort=80
+
+# Port for Http requests.
+#-DhttpsPort=443
 
 # Address to listen on, defaults to localhost. 
 #
@@ -114,6 +123,9 @@
 -DaccessLogs=logs
 
 # It is recommended the options below are not changed unless you have special requirements
+
+# The cache directory. Defaults to $HOME/.m2/npm2mvn/cache
+#-DcacheDir=/some/path
 
 # The path prefix for all requests
 #-Dpath=/some/path
