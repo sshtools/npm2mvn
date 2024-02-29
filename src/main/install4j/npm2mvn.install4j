@@ -1421,64 +1421,6 @@ sleep 2
 killall -s SIGHUP dbus-daemon
 </preUninstallScript>
     </linuxDeb>
-    <linuxDeb name="Linux Deb Archive (armhf)" id="131" mediaFileName="npm2mvn-${compiler:sys.platform}-armhf-${compiler:sys.version}" dependencies="dbus" description="LogonBox Callback Service" maintainerEmail="support@logonbox.com" architectureSet="true" architecture="armhf">
-      <jreBundle jdkProviderId="Liberica" release="17/17.0.4.1+1" overrideJdkRelease="true" platform="linux-arm32-vfp-hflt" />
-      <postInstallScript># Create some links to official linux directories
-
-if [ -e /opt/callback-service/logs  -a ! -e /var/log/callback-service ] ; then
-    ln -sf /opt/callback-service/logs /var/log/callback-service
-fi
-mkdir -p /etc/callback-service
-if [ -e /opt/callback-service/cfg.d  -a ! -L /etc/callback-service/callback-service.cfg.d ] ; then
-    if [ -e /etc/callback-service/callback-service.cfg.d ] ; then
-        # Exists, but is not a link
-        mv /etc/callback-service/callback-service.cfg.d/* /opt/callback-service/cfg.d
-        rm -fr /etc/callback-service/callback-service.cfg.d
-    fi
-    ln -sf /opt/callback-service/cfg.d /etc/callback-service/callback-service.cfg.d
-fi
-if [ -e /opt/callback-service/callback-service.cfg -a ! -L /etc/callback-service/callback-service.cfg ] ; then
-    rm -f /etc/callback-service/callback-service.cfg
-    ln -sf /opt/callback-service/callback-service.cfg /etc/callback-service/callback-service.cfg
-fi
-
-# For dbus service
-# NOTE: Cant seem to make this work with a symlink, so the file is copied. I can't seem to get Install4J
-#       to copy files outside of install directory so dbus apt triggers are activated 
-cp /opt/callback-service/dbus/com.sshtools.callback.conf /etc/dbus-1/system.d/com.sshtools.callback.conf
-systemctl reload dbus
-sleep 2
-killall -s SIGHUP dbus-daemon
-
-# Remove old log file
-rm -f /var/log/callback-server.log
-
-# Register with Jaul
-/opt/callback-service/callback-servicec --jaul-register DEB</postInstallScript>
-      <preUninstallScript># Create some links to official linux directories
-
-# De-register 
-/opt/callback-service/callback-servicec --jaul-deregister
-
-if [ -L /var/log/callback-service ] ; then
-    rm /var/log/callback-service
-fi
-if [ -L /etc/callback-service/callback-service.cfg.d ] ; then
-    rm /etc/callback-service/callback-service.cfg.d
-fi
-if [ -L /etc/callback-service/callback-service.cfg ] ; then
-    rm /etc/callback-service/callback-service.cfg
-fi
-
-# For dbus service
-# NOTE: Cant seem to make this work with a symlink, so the file is copied. I can't seem to get Install4J
-#       to copy files outside of install directory so dbus apt triggers are activated 
-rm /etc/dbus-1/system.d/com.sshtools.callback.conf
-systemctl reload dbus
-sleep 2
-killall -s SIGHUP dbus-daemon
-</preUninstallScript>
-    </linuxDeb>
     <macosFolder name="macOS Folder (x64)" id="132" mediaFileName="npm2mvn-${compiler:sys.platform}-x64-${compiler:sys.version}" signLaunchers="true">
       <jreBundle jdkProviderId="JBR" release="21/21.0.2-b375.1" usePack200="false" overrideJdkRelease="true" />
     </macosFolder>
@@ -1487,9 +1429,6 @@ killall -s SIGHUP dbus-daemon
     </unixInstaller>
     <unixInstaller name="Linux Aarch64 Installer" id="201" mediaFileName="npm2mvn-linux-aarch64-${compiler:sys.version}">
       <jreBundle jdkProviderId="AdoptOpenJDK-OpenJ9" release="21/jdk-21.0.2+13_openj9-0.43.0" platform="linux-aarch64" />
-    </unixInstaller>
-    <unixInstaller name="Linux Armhf Installer" id="204" mediaFileName="npm2mvn-linux-armhf-${compiler:sys.version}">
-      <jreBundle jdkProviderId="Liberica" release="21/21.0.2+14" overrideJdkRelease="true" platform="linux-arm32-vfp-hflt" />
     </unixInstaller>
     <macosFolder name="macOS Folder (aarch64)" id="219" mediaFileName="npm2mvn-${compiler:sys.platform}-aarch64-${compiler:sys.version}" architecture="aarch64" signLaunchers="true">
       <jreBundle jdkProviderId="JBR" release="21/21.0.2-b375.1" overrideJdkRelease="true" />
