@@ -526,6 +526,7 @@ public class Npm2Mvn implements Callable<Integer> {
 							createDirectories(extractTo);
 						} else {
 							Files.createDirectories(extractTo.getParent());
+							Files.deleteIfExists(extractTo);
 							Files.copy(tar, extractTo);
 						}
 					}
