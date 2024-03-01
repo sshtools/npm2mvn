@@ -141,7 +141,7 @@ public class Npm2Mvn implements Callable<Integer> {
 	@Option(names = {"-S", "--https-port"}, description = "The port on which HTTPs requests will be accepted.")
 	private Optional<Integer> httpsPort;
 	
-	@Option(names = {"-r", "--resource-path-pattern"}, description = "The pattern to use for paths of resources in generated artifacts. Default is '%%g/%%a/%%v`. %%g is replaced the group Id, %%a is replaced by the artifact Id, and %%v is replaced by the version.")
+	@Option(names = {"-r", "--resource-path-pattern"}, description = "The pattern to use for paths of resources in generated artifacts. Default is 'npm2mvn/%%g/%%a/%%v`. %%g is replaced the group Id, %%a is replaced by the artifact Id, and %%v is replaced by the version.")
 	private Optional<String> resourcePathPattern;
 	
 	@Option(names = {"-K", "--keystore-file"}, description = "The path to the keystore. Uses $HOME/.keystore if not specified.")
@@ -252,7 +252,7 @@ public class Npm2Mvn implements Callable<Integer> {
 	}
 	
 	private String resourcePathPattern() {
-		return resourcePathPattern.orElseGet(() -> System.getProperty("resourcePathPattern", "%g/%a/%v"));
+		return resourcePathPattern.orElseGet(() -> System.getProperty("resourcePathPattern", "npm2mvn/%g/%a/%v"));
 	}
 	
 	private void handle(Transaction tx) {
