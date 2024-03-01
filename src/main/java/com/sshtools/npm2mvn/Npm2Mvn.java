@@ -70,6 +70,8 @@ public class Npm2Mvn implements Callable<Integer> {
 	private final static int DEFAULT_HTTP_PORT = 9080;
 	private final static URI root = URI.create("https://registry.npmjs.org");
 
+	private static final Object GROUP_ID = "npm";
+
 	private final class TeeInputStream extends FilterInputStream {
 		private final OutputStream out;
 
@@ -120,9 +122,6 @@ public class Npm2Mvn implements Callable<Integer> {
 	
 	@Option(names = {"-p", "--path"}, description = "Root path under which artifacts are served from. If omitted, will be '/'")
 	private Optional<String> path;
-	
-	@Option(names = {"-g", "--group-id"}, description = "The group id to serve all packages as. Defaults to 'npm'")
-	private Optional<String> servedGroupId;
 	
 	@Option(names = {"-C", "--cache-dir"}, description = "The directory where artifacts are cached")
 	private Optional<Path> cacheDir;
@@ -217,8 +216,7 @@ public class Npm2Mvn implements Callable<Integer> {
 	private void homePage(Transaction tx) {
 		try(var templ = findHomeTemplate()) {
 			tx.response("text/html", processor.process(templ.
-					variable("serverUrl", tx.url()).
-					variable("groupId", servedGroupId())));
+					variable("serverUrl", tx.url())));
 		}
 	}
 
@@ -253,10 +251,6 @@ public class Npm2Mvn implements Callable<Integer> {
 		return value.or(() -> Optional.ofNullable(System.getProperty(key)));
 	}
 	
-	private String servedGroupId() {
-		return servedGroupId.orElseGet(() -> System.getProperty("groupId", "npm"));
-	}
-	
 	private String resourcePathPattern() {
 		return resourcePathPattern.orElseGet(() -> System.getProperty("resourcePathPattern", "%g/%a/%v"));
 	}
@@ -271,7 +265,7 @@ public class Npm2Mvn implements Callable<Integer> {
 				var artifactId = pathParts[pathParts.length - 3];
 				var groupId = String.join(".", Arrays.asList(pathParts).subList(0, pathParts.length - 3));
 				
-				if(!groupId.equals(servedGroupId())) {
+				if(!groupId.equals(GROUP_ID) && !groupId.startsWith(GROUP_ID + ".")) {
 					throw new NoSuchFileException(groupId);
 				}
 				
@@ -286,16 +280,16 @@ public class Npm2Mvn implements Callable<Integer> {
 				LOG.info(format("Request for {0}:{1}:{2} ({3})", groupId, artifactId, version, filename));
 				
 				if(filename.endsWith(".pom")) {
-					tx.response("text/xml", getPom(filename, version, artifactId, groupId));
+					tx.response("text/xml", getPom(filename, version, groupId, artifactId));
 				}
 				else if(filename.endsWith(".jar")) {
-					tx.response("application/java-archive", getJar(filename, version, artifactId, groupId));
+					tx.response("application/java-archive", getJar(filename, version, groupId, artifactId));
 				}
 				else if(filename.endsWith(".pom.sha1")) {
-					tx.response("text/plain", getPomSha1(filename, version, artifactId, groupId));
+					tx.response("text/plain", getPomSha1(filename, version, groupId, artifactId));
 				}
 				else if(filename.endsWith(".jar.sha1")) {
-					tx.response("text/plain", getJarSha1(filename, version, artifactId, groupId));
+					tx.response("text/plain", getJarSha1(filename, version, groupId, artifactId));
 				}
 				else
 					throw new NoSuchFileException(filename);
@@ -322,15 +316,15 @@ public class Npm2Mvn implements Callable<Integer> {
 		});
 	}
 	
-	private InputStream getPomSha1(String filename, String version, String artifactId, String groupId) throws IOException, NoSuchAlgorithmException {
-		var cacheFileDir = artifactCacheDir(version, artifactId);
-		var cacheFile = cacheFileDir.resolve(artifactId + ":" + version + ".pom.sha1");
+	private InputStream getPomSha1(String filename, String version, String groupId, String artifactId) throws IOException, NoSuchAlgorithmException {
+		var cacheFileDir = artifactCacheDir(version, groupId, artifactId);
+		var cacheFile = cacheFileDir.resolve(groupId + ":" + artifactId + ":" + version + ".pom.sha1");
 		if(Files.exists(cacheFile)) {
 			LOG.info(format("Responding with POM SHA1 from the cache @", cacheFile));
 		}
 		else {
 			var digest = MessageDigest.getInstance("SHA-1");
-			try(var digestIn = new DigestInputStream(getPom(filename, version, artifactId, groupId), digest)) {
+			try(var digestIn = new DigestInputStream(getPom(filename, version, groupId, artifactId), digest)) {
 				digestIn.transferTo(OutputStream.nullOutputStream());
 				try(var wtr = Files.newBufferedWriter(cacheFile)) {
 					wtr.write(Hex.encodeHexString(digest.digest()));
@@ -341,15 +335,15 @@ public class Npm2Mvn implements Callable<Integer> {
 		return Files.newInputStream(cacheFile);
 	}
 	
-	private InputStream getJarSha1(String filename, String version, String artifactId, String groupId) throws IOException, NoSuchAlgorithmException {
-		var cacheFileDir = artifactCacheDir(version, artifactId);
-		var cacheFile = cacheFileDir.resolve(artifactId + ":" + version + ".sha1");
+	private InputStream getJarSha1(String filename, String version, String groupId, String artifactId) throws IOException, NoSuchAlgorithmException {
+		var cacheFileDir = artifactCacheDir(version, groupId, artifactId);
+		var cacheFile = cacheFileDir.resolve(groupId + ":" + artifactId + ":" + version + ".sha1");
 		if(Files.exists(cacheFile)) {
 			LOG.info(format("Responding with SHA1 from the cache @", cacheFile));
 		}
 		else {
 			var digest = MessageDigest.getInstance("SHA-1");
-			try(var digestIn = new DigestInputStream(getJar(filename, version, artifactId, groupId), digest)) {
+			try(var digestIn = new DigestInputStream(getJar(filename, version, groupId, artifactId), digest)) {
 				digestIn.transferTo(OutputStream.nullOutputStream());
 				try(var wtr = Files.newBufferedWriter(cacheFile)) {
 					wtr.write(Hex.encodeHexString(digest.digest()));
@@ -360,61 +354,63 @@ public class Npm2Mvn implements Callable<Integer> {
 		return Files.newInputStream(cacheFile);
 	}
 	
-	private InputStream getPom(String filename, String version, String artifactId, String groupId) throws IOException {
-		var cacheFileDir = artifactCacheDir(version, artifactId);
-		var cacheFile = cacheFileDir.resolve(artifactId + ":" + version + ".pom");
+	private InputStream getPom(String filename, String version, String groupId, String artifactId) throws IOException {
+		var cacheFileDir = artifactCacheDir(version, groupId, artifactId);
+		var cacheFile = cacheFileDir.resolve(groupId + ":" + artifactId + ":" + version + ".pom");
 		if(Files.exists(cacheFile)) {
 			LOG.info(format("Responding with POM {0} from the cache @", artifactId, cacheFile));
 			return Files.newInputStream(cacheFile);
 		}
 		else {
-			var in = downloadManifestAndTransformToPom(filename, version, artifactId, groupId);
+			var in = downloadManifestAndTransformToPom(filename, version, groupId, artifactId);
 			LOG.info(format("Responding with fresh copy of POM {0} from NPM", artifactId));
 			var out = Files.newOutputStream(cacheFile);
 			return new TeeInputStream(in, out);
 		}
 	}
 	
-	private InputStream getJar(String filename, String version, String artifactId, String groupId) throws IOException {
-		var cacheFileDir = artifactCacheDir(version, artifactId);
-		var cacheFile = cacheFileDir.resolve(artifactId + ":" + version + ".jar");
+	private InputStream getJar(String filename, String version, String groupId, String artifactId) throws IOException {
+		var cacheFileDir = artifactCacheDir(version, groupId, artifactId);
+		var cacheFile = cacheFileDir.resolve(groupId + ":" + artifactId + ":" + version + ".jar");
 		if(Files.exists(cacheFile)) {
 			LOG.info(format("Responding with Jar {0} from the cache @", artifactId, cacheFile));
 			return Files.newInputStream(cacheFile);
 		}
 		else {
-			var in = downloadPackageAndTransformToJar(filename, version, artifactId, groupId);
+			var in = downloadPackageAndTransformToJar(filename, version, groupId, artifactId);
 			LOG.info(format("Responding with fresh copy of transform Jar {0} from NPM", artifactId));
 			var out = Files.newOutputStream(cacheFile);
 			return new TeeInputStream(in, out);
 		}
 	}
 	
-	private InputStream getManifest(String filename, String version, String artifactId, String groupId) throws IOException {
-		var cacheFileDir = artifactCacheDir(version, artifactId);
-		var cacheFile = cacheFileDir.resolve(artifactId + ":" + version + ".json");
+	private InputStream getManifest(String filename, String version, String groupId, String artifactId) throws IOException {
+		var cacheFileDir = artifactCacheDir(version, groupId, artifactId);
+		var cacheFile = cacheFileDir.resolve(groupId + ":" + artifactId + ":" + version + ".json");
 		if(Files.exists(cacheFile)) {
 			LOG.info(format("Responding with manifest {0} from the cache @", artifactId, cacheFile));
 			return Files.newInputStream(cacheFile);
 		}
 		else {
-			var in = downloadManifest(filename, version, artifactId, groupId);
+			var in = downloadManifest(filename, version, groupId, artifactId);
 			LOG.info(format("Responding with fresh copy manifest of {0} from NPM", artifactId));
 			var out = Files.newOutputStream(cacheFile);
 			return new TeeInputStream(in, out);
 		}
 	}
 
-	private Path artifactCacheDir(String version, String artifactId) throws IOException {
-		var cacheFileDir = cacheDir().resolve(artifactId + ":" + version);
+	private Path artifactCacheDir(String version, String groupId, String artifactId) throws IOException {
+		var cacheFileDir = cacheDir().resolve(groupId + ":" + artifactId + ":" + version);
 		createDirectories(cacheFileDir);
 		return cacheFileDir;
 	}
 	
-	private InputStream downloadManifest(String filename, String version, String artifactId, String groupId) {
+	private InputStream downloadManifest(String filename, String version, String groupId, String artifactId) {
 		
 		var httpClient = createHttpClient();
-		var uri = URI.create(root.toString() + "/" + artifactId);
+		var uri = groupId.equals(GROUP_ID) ? 
+				URI.create(root.toString() + "/" + artifactId) : 
+				URI.create(root.toString() + "/@" + groupId.substring(4) + "/" + artifactId);
 		LOG.info(format("Getting manifest from {0}", uri));
 		var request = HttpRequest.newBuilder().GET().uri(uri).build();
 		var handler = HttpResponse.BodyHandlers.ofInputStream();
@@ -439,8 +435,8 @@ public class Npm2Mvn implements Callable<Integer> {
 		return HttpClient.newBuilder().build();
 	}
 	
-	private InputStream downloadManifestAndTransformToPom(String filename, String version, String artifactId, String groupId) throws IOException {
-		try (var in = getManifest(filename, version, artifactId, groupId)) {
+	private InputStream downloadManifestAndTransformToPom(String filename, String version, String groupId, String artifactId) throws IOException {
+		try (var in = getManifest(filename, version, groupId, artifactId)) {
 			var object = Json.createReader(in).readObject();
 			var versions = object.get("versions").asJsonObject();
 			if (versions.containsKey(version)) {
@@ -472,8 +468,8 @@ public class Npm2Mvn implements Callable<Integer> {
 		}
 	}
 	
-	private InputStream downloadPackageAndTransformToJar(String filename, String version, String artifactId, String groupId) throws IOException {
-		try (var in = getManifest(filename, version, artifactId, groupId)) {
+	private InputStream downloadPackageAndTransformToJar(String filename, String version, String groupId, String artifactId) throws IOException {
+		try (var in = getManifest(filename, version, groupId, artifactId)) {
 			var object = Json.createReader(in).readObject();
 			var versions = object.get("versions").asJsonObject();
 			if (versions.containsKey(version)) {
@@ -489,7 +485,7 @@ public class Npm2Mvn implements Callable<Integer> {
 					var response = createHttpClient().send(request, handler);
 					switch (response.statusCode()) {
 					case 200:
-						return tarballToJar(response.body(), filename, artifactId, groupId, version);
+						return tarballToJar(response.body(), filename, groupId, artifactId, version);
 					case 404:
 						throw new NoSuchFileException(filename);
 					default:
@@ -503,7 +499,7 @@ public class Npm2Mvn implements Callable<Integer> {
 		}
 	}
 	
-	private InputStream tarballToJar(InputStream body, String filename, String artifactId, String groupId, String version) throws IOException {
+	private InputStream tarballToJar(InputStream body, String filename, String groupId, String artifactId, String version) throws IOException {
 		var tmpDir = Files.createTempDirectory("npmx");
 		var resourcePathPattern = resourcePathPattern().
 				replace("%g", groupId).
@@ -561,7 +557,7 @@ public class Npm2Mvn implements Callable<Integer> {
 		var poms = tmpDir.resolve("META-INF").resolve("maven").resolve(groupId).resolve(artifactId);
 		createDirectories(poms);
 		var pomXml = poms.resolve("pom.xml");
-		try(var in = getPom(filename, version, artifactId, groupId)) {
+		try(var in = getPom(filename, version, groupId, artifactId)) {
 			try(var out = Files.newOutputStream(pomXml)) {
 				in.transferTo(out);
 			}

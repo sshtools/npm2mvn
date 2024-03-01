@@ -30,4 +30,5 @@ Npm2Mvn is currently under development.
  * Locking for multi-user usage
  * Bugs in access log, always shows as 404
  * Configurable cache
+ * Cache misses
  * Add dependencies to generated POMs
