@@ -28,7 +28,6 @@ compatible with Graal Native Image for fast startup and low resource usage.
 Npm2Mvn is currently under development. 
 
  * Locking for multi-user usage
- * Bugs in access log, always shows as 404
  * Configurable cache
  * Cache misses
- * Add dependencies to generated POMs
+ * Add dependencies and more meta-data (authors etc) to generated POMs

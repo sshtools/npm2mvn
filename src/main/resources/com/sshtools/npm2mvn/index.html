@@ -19,17 +19,18 @@
     </pre>
     <h3>Add Your Dependencies</h3>
     <p>Now add your dependencies. You just need the package name and 
-    the version. The groupId for npm2mvn dependencies will always be <em>npm</em></p>
+    the version. The groupId for npm2mvn dependencies will always be <em>npm</em>, unless
+    the package is in an organisation, in which case it will be <em>npm.orgName</em></p>
     <pre class="codeblock">
        &lt;dependency&gt;
-           &lt;groupId>${groupId}&lt;/groupId&gt;
+           &lt;groupId>npm&lt;/groupId&gt;
            &lt;artifactId>bootstrap&lt;/artifactId&gt;
            &lt;version>5.3.1&lt;/version&gt;
        &lt;/dependency&gt;
        &lt;dependency&gt;
-           &lt;groupId>${groupId}&lt;/groupId&gt;
-           &lt;artifactId>bootstrap-icons&lt;/artifactId&gt;
-           &lt;version>1.11.0&lt;/version&gt;
+           &lt;groupId>npm.fortawesome&lt;/groupId&gt;
+           &lt;artifactId>fontawesome-free&lt;/artifactId&gt;
+           &lt;version>6.4.0&lt;/version&gt;
        &lt;/dependency&gt;
     </pre>
     <h3>Access The Resource</h3>
