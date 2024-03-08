@@ -571,16 +571,6 @@ public class Npm2Mvn implements Callable<Integer> {
 			props.store(out, "npm2mvn");
 		}
 
-		/* Generate a layers.ini */
-		var layers = tmpDir.resolve("layers.ini");
-		try (var wrtr = new PrintWriter(Files.newOutputStream(layers))) {
-			wrtr.println("[component]");
-			wrtr.println("id = " + moduleName);
-			wrtr.println();
-			wrtr.println("[meta]");
-			wrtr.println("source = npm");
-		}
-
 		/* Generate some native image meta-data for all resources in this package */
 		var resourceDir = tmpDir.resolve("META-INF").resolve("native-image").resolve(moduleName);
 		Files.createDirectories(resourceDir);
