@@ -30,4 +30,3 @@ Npm2Mvn is currently under development.
  * Locking for multi-user usage
  * Configurable cache
  * Cache misses
- * Add dependencies and more meta-data (authors etc) to generated POMs

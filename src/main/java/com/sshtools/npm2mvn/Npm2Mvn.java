@@ -23,10 +23,18 @@ import java.nio.file.Paths;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.jar.JarEntry;
@@ -35,6 +43,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.json.Json;
+import javax.json.JsonObject;
 
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.compress.archivers.ArchiveEntry;
@@ -156,7 +165,11 @@ public class Npm2Mvn implements Callable<Integer> {
 	@Option(names = {"-T", "--keystore-type"}, description = "The type of keystore.")
 	private Optional<String> keystoreType;
 	
+	@Option(names = {"-R", "--no-transitive"}, description = "Do not generate <dependency> tags in poms.")
+	private boolean noTransitive;
+	
 	private final TemplateProcessor processor;
+	private final Set<String> downloading = Collections.synchronizedSet(new HashSet<>());
 	
 	public Npm2Mvn() {
 		processor = new TemplateProcessor.Builder().
@@ -259,44 +272,98 @@ public class Npm2Mvn implements Callable<Integer> {
 		var seq = tx.match(0);
 		var pathParts = seq.split("/");
 		try {
-			if(pathParts.length > 3) {
+			if(pathParts.length > 2) {
 				var filename = pathParts[pathParts.length - 1];
-				var version = pathParts[pathParts.length - 2];
-				var artifactId = pathParts[pathParts.length - 3];
-				var groupId = String.join(".", Arrays.asList(pathParts).subList(0, pathParts.length - 3));
 				
-				if(!groupId.equals(GROUP_ID) && !groupId.startsWith(GROUP_ID + ".")) {
-					throw new NoSuchFileException(groupId);
+				if(filename.startsWith("maven-metadata.xml")) {
+					var groupId = String.join(".", Arrays.asList(pathParts).subList(0, pathParts.length - 2));
+					if(!groupId.equals(GROUP_ID) && !groupId.startsWith(GROUP_ID + ".")) {
+						throw new NoSuchFileException(seq);
+					}
+					
+					var artifactId = pathParts[pathParts.length - 2];
+					if(filename.endsWith(".xml")) {
+						tx.response("text/xml", getMeta(tx, filename, groupId, artifactId));
+					}
+					else if(filename.endsWith(".sha1")) {
+						tx.response("text/plain", getMetaDigest(tx, filename, groupId, artifactId, "SHA-1"));
+					}
+					else if(filename.endsWith(".md5")) {
+						tx.response("text/plain", getMetaDigest(tx, filename, groupId, artifactId, "MD5"));
+					}
+					else if(filename.endsWith(".sha256")) {
+						tx.response("text/plain", getMetaDigest(tx, filename, groupId, artifactId, "SHA-256"));
+					}
+					else if(filename.endsWith(".sha512")) {
+						tx.response("text/plain", getMetaDigest(tx, filename, groupId, artifactId, "SHA-512"));
+					}
+					
 				}
-				
-				if(filename.equals(artifactId + "-" + version + "-javadoc.jar")) {
-					throw new NoSuchFileException(filename);
-				}
-				
-				if(filename.equals(artifactId + "-" + version + "-sources.jar")) {
-					throw new NoSuchFileException(filename);
-				}
-				
-				LOG.info(format("Request for {0}:{1}:{2} ({3})", groupId, artifactId, version, filename));
-				
-				if(filename.endsWith(".pom")) {
-					tx.response("text/xml", getPom(filename, version, groupId, artifactId));
-				}
-				else if(filename.endsWith(".jar")) {
-					tx.response("application/java-archive", getJar(filename, version, groupId, artifactId));
-				}
-				else if(filename.endsWith(".pom.sha1")) {
-					tx.response("text/plain", getPomSha1(filename, version, groupId, artifactId));
-				}
-				else if(filename.endsWith(".jar.sha1")) {
-					tx.response("text/plain", getJarSha1(filename, version, groupId, artifactId));
+				else if(pathParts.length > 3) {
+					var groupId = String.join(".", Arrays.asList(pathParts).subList(0, pathParts.length - 3));
+					if(!groupId.equals(GROUP_ID) && !groupId.startsWith(GROUP_ID + ".")) {
+						throw new NoSuchFileException(seq);
+					}
+					
+					var version = pathParts[pathParts.length - 2];
+					var artifactId = pathParts[pathParts.length - 3];
+					
+					if(filename.equals(artifactId + "-" + version + "-javadoc.jar")) {
+						throw new NoSuchFileException(seq);
+					}
+					
+					if(filename.equals(artifactId + "-" + version + "-sources.jar")) {
+						throw new NoSuchFileException(seq);
+					}
+					
+					if(version.endsWith("-SNAPSHOT")) {
+						throw new NoSuchFileException(seq);
+					}
+					
+					LOG.info(format("Request for {0}:{1}:{2} ({3})", groupId, artifactId, version, filename));
+					
+					if(filename.endsWith(".pom")) {
+						tx.response("text/xml", getPom(tx, filename, version, groupId, artifactId));
+					}
+					else if(filename.endsWith(".jar")) {
+						tx.response("application/java-archive", getJar(tx, filename, version, groupId, artifactId));
+					}
+					else if(filename.endsWith(".pom.sha1")) {
+						tx.response("text/plain", getPomDigest(tx, filename, version, groupId, artifactId, "SHA-1"));
+					}
+					else if(filename.endsWith(".pom.md5")) {
+						tx.response("text/plain", getPomDigest(tx, filename, version, groupId, artifactId, "MD5"));
+					}
+					else if(filename.endsWith(".pom.sha256")) {
+						tx.response("text/plain", getPomDigest(tx, filename, version, groupId, artifactId, "SHA-256"));
+					}
+					else if(filename.endsWith(".pom.sha512")) {
+						tx.response("text/plain", getPomDigest(tx, filename, version, groupId, artifactId, "SHA-512"));
+					}
+					else if(filename.endsWith(".jar.sha1")) {
+						tx.response("text/plain", getJarDigest(tx, filename, version, groupId, artifactId, "SHA-1"));
+					}
+					else if(filename.endsWith(".jar.md5")) {
+						tx.response("text/plain", getJarDigest(tx, filename, version, groupId, artifactId, "MD5"));
+					}
+					else if(filename.endsWith(".jar.sha256")) {
+						tx.response("text/plain", getJarDigest(tx, filename, version, groupId, artifactId, "SHA-256"));
+					}
+					else if(filename.endsWith(".jar.sha512")) {
+						tx.response("text/plain", getJarDigest(tx, filename, version, groupId, artifactId, "SHA-512"));
+					}
+					else
+						throw new NoSuchFileException(seq);
 				}
 				else
-					throw new NoSuchFileException(filename);
+					throw new NoSuchFileException(seq);
 			}
+			else
+				throw new NoSuchFileException(seq);
 		}
 		catch(NoSuchFileException nsfe) {
-			LOG.info(format("Not found. {0}", nsfe.getFile()));
+			if(LOG.isLoggable(Level.FINE))
+				LOG.fine(format("Not found. {0}", nsfe.getFile()));
 			tx.responseCode(Status.NOT_FOUND);
 		}
 		catch(Exception e) {
@@ -316,15 +383,15 @@ public class Npm2Mvn implements Callable<Integer> {
 		});
 	}
 	
-	private InputStream getPomSha1(String filename, String version, String groupId, String artifactId) throws IOException, NoSuchAlgorithmException {
-		var cacheFileDir = artifactCacheDir(version, groupId, artifactId);
-		var cacheFile = cacheFileDir.resolve(groupId + ":" + artifactId + ":" + version + ".pom.sha1");
+	private InputStream getMetaDigest(Transaction tx, String filename, String groupId, String artifactId, String algo) throws IOException, NoSuchAlgorithmException {
+		var cacheFileDir = artifactCacheDir(null, groupId, artifactId);
+		var cacheFile = cacheFileDir.resolve(groupId + ":" + artifactId + ".maven-metadata." + algoExtension(algo));
 		if(Files.exists(cacheFile)) {
-			LOG.info(format("Responding with POM SHA1 from the cache @", cacheFile));
+			LOG.info(format("Responding with meta {0} from the cache @ {1}", algo, cacheFile));
 		}
 		else {
-			var digest = MessageDigest.getInstance("SHA-1");
-			try(var digestIn = new DigestInputStream(getPom(filename, version, groupId, artifactId), digest)) {
+			var digest = MessageDigest.getInstance(algo);
+			try(var digestIn = new DigestInputStream(getMeta(tx, filename, groupId, artifactId), digest)) {
 				digestIn.transferTo(OutputStream.nullOutputStream());
 				try(var wtr = Files.newBufferedWriter(cacheFile)) {
 					wtr.write(Hex.encodeHexString(digest.digest()));
@@ -335,15 +402,15 @@ public class Npm2Mvn implements Callable<Integer> {
 		return Files.newInputStream(cacheFile);
 	}
 	
-	private InputStream getJarSha1(String filename, String version, String groupId, String artifactId) throws IOException, NoSuchAlgorithmException {
+	private InputStream getPomDigest(Transaction tx, String filename, String version, String groupId, String artifactId, String algo) throws IOException, NoSuchAlgorithmException {
 		var cacheFileDir = artifactCacheDir(version, groupId, artifactId);
-		var cacheFile = cacheFileDir.resolve(groupId + ":" + artifactId + ":" + version + ".sha1");
+		var cacheFile = cacheFileDir.resolve(groupId + ":" + artifactId + ":" + version + ".pom." + algoExtension(algo));
 		if(Files.exists(cacheFile)) {
-			LOG.info(format("Responding with SHA1 from the cache @", cacheFile));
+			LOG.info(format("Responding with POM {0} from the cache @ {2}", algo, cacheFile));
 		}
 		else {
-			var digest = MessageDigest.getInstance("SHA-1");
-			try(var digestIn = new DigestInputStream(getJar(filename, version, groupId, artifactId), digest)) {
+			var digest = MessageDigest.getInstance(algo);
+			try(var digestIn = new DigestInputStream(getPom(tx, filename, version, groupId, artifactId), digest)) {
 				digestIn.transferTo(OutputStream.nullOutputStream());
 				try(var wtr = Files.newBufferedWriter(cacheFile)) {
 					wtr.write(Hex.encodeHexString(digest.digest()));
@@ -354,45 +421,83 @@ public class Npm2Mvn implements Callable<Integer> {
 		return Files.newInputStream(cacheFile);
 	}
 	
-	private InputStream getPom(String filename, String version, String groupId, String artifactId) throws IOException {
+	private InputStream getJarDigest(Transaction tx, String filename, String version, String groupId, String artifactId, String algo) throws IOException, NoSuchAlgorithmException {
 		var cacheFileDir = artifactCacheDir(version, groupId, artifactId);
-		var cacheFile = cacheFileDir.resolve(groupId + ":" + artifactId + ":" + version + ".pom");
+		var cacheFile = cacheFileDir.resolve(groupId + ":" + artifactId + ":" + version + "." + algoExtension(algo));
 		if(Files.exists(cacheFile)) {
-			LOG.info(format("Responding with POM {0} from the cache @", artifactId, cacheFile));
+			LOG.info(format("Responding with Jar {0} from the cache @ {1}", cacheFile, algo));
+		}
+		else {
+			var digest = MessageDigest.getInstance(algo);
+			try(var digestIn = new DigestInputStream(getJar(tx, filename, version, groupId, artifactId), digest)) {
+				digestIn.transferTo(OutputStream.nullOutputStream());
+				try(var wtr = Files.newBufferedWriter(cacheFile)) {
+					wtr.write(Hex.encodeHexString(digest.digest()));
+					wtr.newLine();
+				}
+			};
+		}
+		return Files.newInputStream(cacheFile);
+	}
+
+	private String algoExtension(String algo) {
+		return algo.toLowerCase().replace("-", "");
+	}
+	
+	private InputStream getMeta(Transaction tx, String filename, String groupId, String artifactId) throws IOException {
+		var cacheFileDir = artifactCacheDir(null, groupId, artifactId);
+		var cacheFile = cacheFileDir.resolve(groupId + ":" + artifactId + ".maven-metadata.xml");
+		if(Files.exists(cacheFile)) {
+			LOG.info(format("Responding with metadata {0} from the cache @ {1}", artifactId, cacheFile));
 			return Files.newInputStream(cacheFile);
 		}
 		else {
-			var in = downloadManifestAndTransformToPom(filename, version, groupId, artifactId);
+			var in = downloadManifestAndTransformToMeta(tx, filename, groupId, artifactId);
+			LOG.info(format("Responding with fresh copy of metadata {0} from NPM", artifactId));
+			var out = Files.newOutputStream(cacheFile);
+			return new TeeInputStream(in, out);
+		}
+	}
+	
+	private InputStream getPom(Transaction tx, String filename, String version, String groupId, String artifactId) throws IOException {
+		var cacheFileDir = artifactCacheDir(version, groupId, artifactId);
+		var cacheFile = cacheFileDir.resolve(groupId + ":" + artifactId + ":" + version + ".pom");
+		if(Files.exists(cacheFile)) {
+			LOG.info(format("Responding with POM {0} from the cache @ {1}", artifactId, cacheFile));
+			return Files.newInputStream(cacheFile);
+		}
+		else {
+			var in = downloadManifestAndTransformToPom(tx, filename, version, groupId, artifactId);
 			LOG.info(format("Responding with fresh copy of POM {0} from NPM", artifactId));
 			var out = Files.newOutputStream(cacheFile);
 			return new TeeInputStream(in, out);
 		}
 	}
 	
-	private InputStream getJar(String filename, String version, String groupId, String artifactId) throws IOException {
+	private InputStream getJar(Transaction tx, String filename, String version, String groupId, String artifactId) throws IOException {
 		var cacheFileDir = artifactCacheDir(version, groupId, artifactId);
 		var cacheFile = cacheFileDir.resolve(groupId + ":" + artifactId + ":" + version + ".jar");
 		if(Files.exists(cacheFile)) {
-			LOG.info(format("Responding with Jar {0} from the cache @", artifactId, cacheFile));
+			LOG.info(format("Responding with Jar {0} from the cache @ {1}", artifactId, cacheFile));
 			return Files.newInputStream(cacheFile);
 		}
 		else {
-			var in = downloadPackageAndTransformToJar(filename, version, groupId, artifactId);
+			var in = downloadPackageAndTransformToJar(tx, filename, version, groupId, artifactId);
 			LOG.info(format("Responding with fresh copy of transform Jar {0} from NPM", artifactId));
 			var out = Files.newOutputStream(cacheFile);
 			return new TeeInputStream(in, out);
 		}
 	}
 	
-	private InputStream getManifest(String filename, String version, String groupId, String artifactId) throws IOException {
-		var cacheFileDir = artifactCacheDir(version, groupId, artifactId);
-		var cacheFile = cacheFileDir.resolve(groupId + ":" + artifactId + ":" + version + ".json");
+	private InputStream getManifest(String filename, String groupId, String artifactId) throws IOException {
+		var cacheFileDir = artifactCacheDir(null, groupId, artifactId);
+		var cacheFile = cacheFileDir.resolve(groupId + ":" + artifactId + ".json");
 		if(Files.exists(cacheFile)) {
-			LOG.info(format("Responding with manifest {0} from the cache @", artifactId, cacheFile));
+			LOG.info(format("Responding with manifest {0} from the cache @ {1}", artifactId, cacheFile));
 			return Files.newInputStream(cacheFile);
 		}
 		else {
-			var in = downloadManifest(filename, version, groupId, artifactId);
+			var in = downloadManifest(filename, groupId, artifactId);
 			LOG.info(format("Responding with fresh copy manifest of {0} from NPM", artifactId));
 			var out = Files.newOutputStream(cacheFile);
 			return new TeeInputStream(in, out);
@@ -400,12 +505,12 @@ public class Npm2Mvn implements Callable<Integer> {
 	}
 
 	private Path artifactCacheDir(String version, String groupId, String artifactId) throws IOException {
-		var cacheFileDir = cacheDir().resolve(groupId + ":" + artifactId + ":" + version);
+		var cacheFileDir = cacheDir().resolve(groupId + ":" + artifactId + (version == null ? "" : ":" + version));
 		createDirectories(cacheFileDir);
 		return cacheFileDir;
 	}
 	
-	private InputStream downloadManifest(String filename, String version, String groupId, String artifactId) {
+	private InputStream downloadManifest(String filename, String groupId, String artifactId) {
 		
 		var httpClient = createHttpClient();
 		var uri = groupId.equals(GROUP_ID) ? 
@@ -434,18 +539,72 @@ public class Npm2Mvn implements Callable<Integer> {
 	private HttpClient createHttpClient() {
 		return HttpClient.newBuilder().build();
 	}
+
 	
-	private InputStream downloadManifestAndTransformToPom(String filename, String version, String groupId, String artifactId) throws IOException {
-		try (var in = getManifest(filename, version, groupId, artifactId)) {
+	private InputStream downloadManifestAndTransformToMeta(Transaction tx, String filename, String groupId, String artifactId) throws IOException {
+		try (var in = getManifest(filename, groupId, artifactId)) {
+			var object = Json.createReader(in).readObject();
+			var versions = object.get("versions").asJsonObject();
+			var meta = new StringBuilder();
+			var versionNumbers = new ArrayList<>(versions.keySet());
+			
+			var current = versionNumbers.get(versionNumbers.size() - 1);
+			var release = current;
+			
+			if(object.containsKey("dist-tags")) {
+				var distTags = object.get("dist-tags").asJsonObject();
+				if(distTags.containsKey("latest")) {
+					release = distTags.getString("latest");
+				}
+			}
+			
+			meta.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+			meta.append("<metadata>\n");
+			meta.append("  <groupId>");
+			meta.append(groupId);
+			meta.append("</groupId>\n");
+			meta.append("  <artifactId>");
+			meta.append(artifactId);
+			meta.append("</artifactId>\n");
+			meta.append("    <versioning>\n");
+			meta.append("      <latest>");
+			meta.append(current);
+			meta.append("</latest>\n");
+			meta.append("      <release>");
+			meta.append(release);
+			meta.append("</release>\n");
+			meta.append("      <versions>\n");
+			versionNumbers.forEach(v -> {
+				meta.append("        <version>");
+				meta.append(v);
+				meta.append("</version>\n");
+				
+			});
+			meta.append("</versions>\n");
+
+			meta.append("      <lastUpdated>");
+			meta.append(new SimpleDateFormat("yyyyMMddHHmmss").format(new Date()));
+			meta.append("</lastUpdated>");
+			meta.append("  </versioning>\n");
+			meta.append("</metadata>\n");
+			return new ByteArrayInputStream(meta.toString().getBytes("UTF-8"));
+		}
+	}
+	
+	private InputStream downloadManifestAndTransformToPom(Transaction tx, String filename, String version, String groupId, String artifactId) throws IOException {
+		try (var in = getManifest(filename, groupId, artifactId)) {
 			var object = Json.createReader(in).readObject();
 			var versions = object.get("versions").asJsonObject();
 			if (versions.containsKey(version)) {
 				var pom = new StringBuilder();
 				
+				// https://maven.apache.org/pom.html
+				
 				pom.append("<!-- Generated by npm2mvn - https://github.com/sshtools/npm2mvn -->\n");
 				pom.append("<project xmlns=\"http://maven.apache.org/POM/4.0.0\" "
 						+ "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd\">");
 				pom.append("<modelVersion>4.0.0</modelVersion>\n");
+				pom.append("<packaging>jar</packaging>");
 				pom.append("<groupId>");
 				pom.append(groupId);
 				pom.append("</groupId>\n");
@@ -456,9 +615,94 @@ public class Npm2Mvn implements Callable<Integer> {
 				pom.append(version);
 				pom.append("</version>\n");
 				
-				pom.append("<dependencies>");
-				/* TODO */
-				pom.append("</dependencies>\n");
+				var versionObj = versions.get(version).asJsonObject();
+				
+				/* Other metadata
+				 * 
+				 * https://docs.npmjs.com/cli/v6/configuring-npm/package-json
+				 * */ 
+				addTagFromProperty(pom, versionObj, "name", "name");
+				addTagFromProperty(pom, versionObj, "description", "description");
+				addTagFromProperty(pom, versionObj, "homepage", "url");
+				
+				try {
+					var desc = versionObj.getString("license");
+					pom.append("<licenses><license><name>");
+					pom.append(encodeXml(desc));
+					pom.append("</name></license></licenses>\n");
+				}
+				catch(Exception e) {}
+				
+				try {
+					var desc = versionObj.getJsonObject("author");
+					pom.append("<developers><developer>");
+					addTagFromProperty(pom, desc, "name", "id");
+					addTagFromProperty(pom, desc, "name", "name");
+					addTagFromProperty(pom, desc, "email", "email");
+					addTagFromProperty(pom, desc, "url", "url");
+					pom.append("</developer></developers>\n");
+				}
+				catch(Exception e) {}
+				
+				try {
+					var desc = versionObj.getJsonObject("bugs");
+					pom.append("<issueManagement>");
+					addTagFromProperty(pom, desc, "url", "url");
+					pom.append("</issueManagement>\n");
+				}
+				catch(Exception e) {}
+				
+				
+				/* 
+				 * Deps 
+				 * https://stackoverflow.com/questions/18875674/whats-the-difference-between-dependencies-devdependencies-and-peerdependencie
+				 * 
+				 * */
+				
+				if(!noTransitive) {
+					var distTags = new HashMap<String, String>();
+					if(object.containsKey("dist-tags")) {
+						var ts = object.get("dist-tags").asJsonObject();
+						for(var k : ts.keySet()) {
+							distTags.put(k, ts.getString(k));
+						}
+						
+					}
+					
+					JsonObject deps = null, peerDeps = null, optDeps = null, peerDepsMeta = null;
+					try { deps = versionObj.getJsonObject("dependencies"); } catch(Exception e) {}
+					try { optDeps = versionObj.getJsonObject("optionalDependencies"); } catch(Exception e) {}
+//					try { peerDeps = versionObj.getJsonObject("peerDependencies"); } catch(Exception e) {}
+//					try { peerDepsMeta = versionObj.getJsonObject("peerDependenciesMeta"); } catch(Exception e) {}
+					
+					if(deps != null || optDeps != null || peerDeps != null) {
+						var done = new HashSet<String>();
+						pom.append("<dependencies>");
+						addDeps(pom, deps, null, distTags, done, null);
+//						addDeps(pom, peerDeps, peerDepsMeta, distTags, done);
+						addDeps(pom, optDeps, null, distTags, done, true);
+						pom.append("</dependencies>\n");
+	//					pom.append("<repositories>");
+	//					
+	//					/* TODO IMPORTANT,INSECURE! anyone could use their own hostname and cache that 
+	//					 * for others to retrieve, potentially downloading dependencies from
+	//					 * an untrusted source.
+	//					 * 
+	//					 * We need fixed configuration for this.
+	//					 */
+	//					pom.append("<repository>");
+	//					pom.append("<id>npm2mvn</id>");
+	//					pom.append("<url>");
+	//					if(tx.secure())
+	//						pom.append("https://" + tx.host());
+	//					else
+	//						pom.append("http://" + tx.host());
+	//					pom.append("</url>");
+	//					pom.append("</repository>\n"); 
+	//					
+	//					pom.append("</repositories>\n");
+					}
+				}
 				
 				pom.append("</project>\n");
 				
@@ -467,9 +711,270 @@ public class Npm2Mvn implements Callable<Integer> {
 				throw new NoSuchFileException(filename);
 		}
 	}
+
+	private void addDeps(StringBuilder pom, JsonObject deps, JsonObject meta, Map<String, String> distTags, HashSet<String> done, Boolean opt) {
+		if(deps == null)
+			return;
+		for(var dep : deps.keySet()) {
+			if(done.contains(dep)) {
+				continue;
+			}
+			done.add(dep);
+			var ver = deps.getString(dep);
+			pom.append("<dependency>");
+			var artId = dep;							
+				pom.append("<groupId>");
+			if(dep.startsWith("@")) {							
+				var parts = dep.substring(1).split("/");
+				pom.append(parts[0]);
+				artId = parts[1];
+			}
+			else {
+				pom.append(GROUP_ID);
+			}
+			pom.append("</groupId>");
+			pom.append("<artifactId>");
+			pom.append(artId);
+			pom.append("</artifactId>");
+			pom.append("<version>");
+			pom.append(translateVersion(distTags, ver));
+			pom.append("</version>");
+			if(meta != null) {
+				try {
+					var obj = meta.getJsonObject(dep);
+					if(obj.containsKey("optional")) {
+						opt = obj.getBoolean("optional");
+					}
+				}
+				catch(Exception e) {
+				}
+			}
+			if(opt != null) {
+				pom.append("<optional>");
+				pom.append(opt);
+				pom.append("</optional>");
+			}
+			pom.append("</dependency>\n");
+			
+		}
+	}
+
+	private String translateVersion(Map<String, String> distTags, String ver) {
+		
+		ver = ver.trim();
+		
+		var b = new StringBuilder();
+		if(ver.equals("*")) {
+			b.append("LATEST");
+		}
+		else if(ver.equals("")) {
+			b.append("RELEASE");
+		}
+		else {
+			var vers = ver.split("\\|\\|");
+			for(var v : vers) {
+				var firstVer = b.length() == 0; 
+				if(!firstVer) { 
+					b.append(",");
+				}
+				
+				v = v.trim();
+				
+				try {
+					var num = Integer.parseInt(v);
+					v = ">=" + num + " <" + ( num + 1);
+				}
+				catch(Exception e) {
+				}
+				
+				var f = v.split("\\s+");
+				var first = f[0].trim();
+				
+				if(f.length> 2 && f[1].equals("-")) {
+					f[0] = ">=" + f[0];
+					f[2] = "<=" + f[2];
+					f = new String[] { f[0], f[2] };
+				}
+				
+				if(first.startsWith(">=")) {
+					b.append("[");
+					b.append(first.substring(2));
+					b.append(",");
+					if(f.length > 1) {
+						var second = f[1];
+						if(second.startsWith("<=")) {
+							b.append(second.substring(2));
+							b.append("]");
+						}
+						else if(second.startsWith("<")) {
+							b.append(second.substring(1));
+							b.append(")");
+						}
+						else {
+							b.append(")");
+						}
+					}
+					else {
+						b.append(")");
+					}
+					 
+				}
+				else if(first.startsWith(">")) {
+					b.append("(");
+					b.append(first.substring(1));
+					b.append(",");
+					if(f.length > 1) {
+						var second = f[1];
+						if(second.startsWith("<=")) {
+							b.append(second.substring(2));
+							b.append("]");
+						}
+						else if(second.startsWith("<")) {
+							b.append(second.substring(1));
+							b.append(")");
+						}
+						else {
+							b.append(")");
+						}
+					}
+					else {
+						b.append(")");
+					}
+				}
+				else if(first.startsWith("<=")) {
+					if(f.length > 1) {
+						var second = f[1];
+						if(second.startsWith("<=")) {
+							b.append("[");
+							b.append(second.substring(2));
+						}
+						else if(second.startsWith("<")) {
+							b.append("(");
+							b.append(second.substring(1));
+						}
+						else {
+							b.append("[");
+						}
+					}
+					else {
+						b.append("[");
+					}
+					b.append(",");
+					b.append(first.substring(2));
+					b.append(")");
+				}
+				else if(first.startsWith("<")) {
+					if(f.length > 1) {
+						var second = f[1];
+						if(second.startsWith("<=")) {
+							b.append("[");
+							b.append(second.substring(2));
+						}
+						else if(second.startsWith("<")) {
+							b.append("(");
+							b.append(second.substring(1));
+						}
+						else {
+							b.append("(");
+						}
+					}
+					else {
+						b.append("(");
+					}
+					b.append(",");
+					b.append(first.substring(1));
+					b.append(")");
+				}
+				else if(first.startsWith("~") || first.startsWith("^")) {
+					/* TODO not quite right, but not sure what else to do here. */
+					if(firstVer && vers.length == 1)
+						b.append(first.substring(1));
+					else
+						b.append("[" + first.substring(1) + "]");
+					break;
+				}
+				else if(first.matches("[a-zA-Z]+.*")) {
+					if(distTags.containsKey(first)) {
+						b.append(distTags.get(first));	
+					}
+					else {
+						b.append("RELEASE");
+					}
+					break;
+				}
+				else {
+					if(first.contains(".x")) {
+						first = "[" + first.replace(".x", "") + ",)";
+					}
+					else {
+						try {
+							var vv = Integer.parseInt(first);
+							b.append("[" + vv + "," + (vv + 1) + ")");
+						}
+						catch(Exception e) {
+							b.append("[" + first + "]");
+						}
+					}
+					break;
+				}
+				
+			}
+		}
+		
+		return b.toString();
+	}
+
+	private void addTagFromProperty(StringBuilder pom, JsonObject versionObj, String key, String tag) {
+		try {
+			var desc = versionObj.getString(key);
+			pom.append("<" + tag + ">");
+			pom.append(encodeXml(desc));
+			pom.append("</" + tag + ">\n");
+		}
+		catch(Exception e) {}
+	}
 	
-	private InputStream downloadPackageAndTransformToJar(String filename, String version, String groupId, String artifactId) throws IOException {
-		try (var in = getManifest(filename, version, groupId, artifactId)) {
+	private static String encodeXml(String s) {
+		StringBuilder sb = new StringBuilder();
+		int len = s.length();
+		for (int i = 0; i < len;) {
+			int c = s.codePointAt(i);
+			if (c < 0x80) {
+				if (c < 0x20 && (c != '\t' && c != '\r' && c != '\n')) {
+					sb.append("&#xfffd;");
+				} else {
+					switch (c) {
+					case '&':
+						sb.append("&amp;");
+						break;
+					case '>':
+						sb.append("&gt;");
+						break;
+					case '<':
+						sb.append("&lt;");
+						break;
+//                  case '\"'  sb.append("&quot;"); break;
+//                  case '\n'  sb.append("&#10;"); break;
+//                  case '\r'  sb.append("&#13;"); break;
+//                  case '\t'  sb.append("&#9;"); break;
+					default:
+						sb.append((char) c);
+					}
+				}
+			} else if ((c >= 0xd800 && c <= 0xdfff) || c == 0xfffe || c == 0xffff) {
+				sb.append("&#xfffd;");
+			} else {
+				sb.append("&#x");
+				sb.append(Integer.toHexString(c));
+				sb.append(';');
+			}
+			i += c <= 0xffff ? 1 : 2;
+		}
+		return sb.toString();
+	}
+	
+	private InputStream downloadPackageAndTransformToJar(Transaction tx, String filename, String version, String groupId, String artifactId) throws IOException {
+		try (var in = getManifest(filename, groupId, artifactId)) {
 			var object = Json.createReader(in).readObject();
 			var versions = object.get("versions").asJsonObject();
 			if (versions.containsKey(version)) {
@@ -485,7 +990,7 @@ public class Npm2Mvn implements Callable<Integer> {
 					var response = createHttpClient().send(request, handler);
 					switch (response.statusCode()) {
 					case 200:
-						return tarballToJar(response.body(), filename, groupId, artifactId, version);
+						return tarballToJar(tx, response.body(), filename, groupId, artifactId, version);
 					case 404:
 						throw new NoSuchFileException(filename);
 					default:
@@ -499,7 +1004,7 @@ public class Npm2Mvn implements Callable<Integer> {
 		}
 	}
 	
-	private InputStream tarballToJar(InputStream body, String filename, String groupId, String artifactId, String version) throws IOException {
+	private InputStream tarballToJar(Transaction tx, InputStream body, String filename, String groupId, String artifactId, String version) throws IOException {
 		var tmpDir = Files.createTempDirectory("npmx");
 		var resourcePathPattern = resourcePathPattern().
 				replace("%g", groupId).
@@ -544,6 +1049,14 @@ public class Npm2Mvn implements Callable<Integer> {
 			wrtr.println("X-NPM-Version: " + version);
 		}
 		
+		/* Copy the npm manifest to META-INF too */
+		var packages = metaInf.resolve("packages.json");
+		try(var in = getManifest(filename, groupId, artifactId)) {
+			try(var out = Files.newOutputStream(packages)) {
+				in.transferTo(out);
+			}		
+		}		
+		
 		/* Generate the locator */
 		var locator = metaInf.resolve("LOCATOR." + groupId + "." + artifactId + ".properties");
 		try(var out = new PrintWriter(Files.newBufferedWriter(locator))) {
@@ -557,7 +1070,7 @@ public class Npm2Mvn implements Callable<Integer> {
 		var poms = tmpDir.resolve("META-INF").resolve("maven").resolve(groupId).resolve(artifactId);
 		createDirectories(poms);
 		var pomXml = poms.resolve("pom.xml");
-		try(var in = getPom(filename, version, groupId, artifactId)) {
+		try(var in = getPom(tx, filename, version, groupId, artifactId)) {
 			try(var out = Files.newOutputStream(pomXml)) {
 				in.transferTo(out);
 			}
@@ -574,7 +1087,7 @@ public class Npm2Mvn implements Callable<Integer> {
 		/* Generate some native image meta-data for all resources in this package */
 		var resourceDir = tmpDir.resolve("META-INF").resolve("native-image").resolve(moduleName);
 		Files.createDirectories(resourceDir);
-		var resourceConfig = resourceDir.resolve("resoure-config.json");
+		var resourceConfig = resourceDir.resolve("resource-config.json");
 		try (var out = new PrintWriter(Files.newOutputStream(resourceConfig), true)) {
 			out.println("""
 						{
