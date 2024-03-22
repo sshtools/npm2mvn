@@ -51,6 +51,7 @@ import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
 import org.slf4j.bridge.SLF4JBridgeHandler;
 
+import com.sshtools.tinytemplate.Templates.CloseableTemplateModel;
 import com.sshtools.tinytemplate.Templates.TemplateModel;
 import com.sshtools.tinytemplate.Templates.TemplateProcessor;
 import com.sshtools.uhttpd.UHTTPD;
@@ -233,12 +234,12 @@ public class Npm2Mvn implements Callable<Integer> {
 		}
 	}
 
-	private TemplateModel findHomeTemplate() {
+	private CloseableTemplateModel findHomeTemplate() {
 		var pathOr = optionalPath(webResources, "webResources");
 		if(pathOr.isPresent()) {
 			var path = pathOr.get().resolve("index.html");
 			if(Files.exists(path)) {
-				return TemplateModel.ofPath(path);
+				return TemplateModel.ofPath(path); 
 			}
 			
 		}
@@ -990,7 +991,7 @@ public class Npm2Mvn implements Callable<Integer> {
 					var response = createHttpClient().send(request, handler);
 					switch (response.statusCode()) {
 					case 200:
-						return tarballToJar(tx, response.body(), filename, groupId, artifactId, version);
+						return tarballToJar(tx, response.body(), filename, groupId, artifactId, version, foundVersion);
 					case 404:
 						throw new NoSuchFileException(filename);
 					default:
@@ -1004,7 +1005,7 @@ public class Npm2Mvn implements Callable<Integer> {
 		}
 	}
 	
-	private InputStream tarballToJar(Transaction tx, InputStream body, String filename, String groupId, String artifactId, String version) throws IOException {
+	private InputStream tarballToJar(Transaction tx, InputStream body, String filename, String groupId, String artifactId, String version, JsonObject versionManifest) throws IOException {
 		var tmpDir = Files.createTempDirectory("npmx");
 		var resourcePathPattern = resourcePathPattern().
 				replace("%g", groupId).
@@ -1050,7 +1051,7 @@ public class Npm2Mvn implements Callable<Integer> {
 		}
 		
 		/* Copy the npm manifest to META-INF too */
-		var packages = metaInf.resolve("packages.json");
+		var packages = metaInf.resolve("PACKAGES." + groupId + "." + artifactId + ".json");
 		try(var in = getManifest(filename, groupId, artifactId)) {
 			try(var out = Files.newOutputStream(packages)) {
 				in.transferTo(out);
@@ -1063,7 +1064,22 @@ public class Npm2Mvn implements Callable<Integer> {
 			var props = new Properties();
 			props.setProperty("version", version);
 			props.setProperty("resource", crossPlatformPath);
+			addPropertyFromElement(versionManifest, "type", props); 
+			addPropertyFromElement(versionManifest, "sass", props); 
+			addPropertyFromElement(versionManifest, "main", props); 
+			addPropertyFromElement(versionManifest, "style", props);  
 			props.store(out, "Npm2Mvn");
+		}	
+		
+		/* Generate the file catalogue */
+		var catalogue = metaInf.resolve("CATALOGUE." + groupId + "." + artifactId + ".list");
+		try(var out = new PrintWriter(Files.newBufferedWriter(catalogue))) {
+			Files.walk(webDir).forEach(path -> {
+				var rel = webDir.relativize(path).toString().replace('\\', '/');
+				if(Files.isRegularFile(path)) {
+					out.println(rel);
+				}
+			});
 		}
 		
 		/* Generate a pom.xml */
@@ -1096,8 +1112,8 @@ public class Npm2Mvn implements Callable<Integer> {
 						""");
 			var idx = new AtomicInteger();
 			Files.walk(tmpDir).forEach(path -> {
-					var rel = tmpDir.relativize(path);
-				if(Files.isRegularFile(path) && !rel.startsWith("META-INF") && !rel.toString().equals("layers.ini")) {
+				var rel = tmpDir.relativize(path).toString().replace('\\', '/');
+				if(Files.isRegularFile(path) && !rel.startsWith("META-INF/native-image") && !rel.equals("layers.ini")) {
 					if(idx.getAndIncrement() > 0)
 						out.println(",");
 					else
@@ -1147,6 +1163,11 @@ public class Npm2Mvn implements Callable<Integer> {
 				}
 			}
 		};
+	}
+
+	private void addPropertyFromElement(JsonObject json, String key, Properties props) {
+		if(json.containsKey(key))
+			props.setProperty(key, json.getString(key));
 	}
 
 	private String asAutomaticModuleName(String artifactId) {
