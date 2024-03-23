@@ -725,6 +725,7 @@ public class Npm2Mvn implements Callable<Integer> {
 				pom.append("<groupId>");
 			if(dep.startsWith("@")) {							
 				var parts = dep.substring(1).split("/");
+				pom.append("npm.");
 				pom.append(parts[0]);
 				artId = parts[1];
 			}
