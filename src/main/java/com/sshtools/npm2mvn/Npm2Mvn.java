@@ -20,6 +20,7 @@ import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -30,7 +31,6 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
@@ -71,10 +71,6 @@ public class Npm2Mvn implements Callable<Integer> {
         SLF4JBridgeHandler.removeHandlersForRootLogger();
         SLF4JBridgeHandler.install();
 	}
-	
-	private final static List<String> STRIP_PREFIXES = Arrays.asList(
-			"package/dist/", 
-			"package/");
 	
 	private final static Logger LOG = Logger.getLogger(Npm2Mvn.class.getName());
 	private final static int DEFAULT_HTTP_PORT = 9080;
@@ -1014,24 +1010,35 @@ public class Npm2Mvn implements Callable<Integer> {
 		var crossPlatformPath = resourcePathPattern.replace("\\", "/");
 		var webDir = tmpDir.resolve(resourcePathPattern.replace("/", File.separator).replace("\\", File.separator));
 		
+		/* 
+		 * There is no standard layout for a package. `dist` is *usually* where minified or
+		 * otherwise processed files intended for distribution, but this is not always the
+		 * case.
+		 * 
+		 * For this reason, we just mirror the same layout. It is up to the developer adding
+		 * the dependency where to load resources from. 
+		 * 
+		 * The `main`, `sass`, `style` attributes would often point to dist and should be
+		 * used when available.
+		 * 
+		 * Ref. https://stackoverflow.com/questions/39729194/role-of-the-src-and-dist-folders-in-npm-packages
+		 */
 		createDirectories(webDir);
 		try (var inputStream = new BufferedInputStream(body);
 				var tar = new TarArchiveInputStream(new GzipCompressorInputStream(inputStream))) {
 			ArchiveEntry entry;
 			while ((entry = tar.getNextEntry()) != null) {
 				var entryName = entry.getName();
-				for(var prefix : STRIP_PREFIXES) {
-					if (entryName.startsWith(prefix)) {
-						var extractTo = webDir.resolve(entryName.substring(prefix.length()));
+					if (entryName.startsWith("package/")) {
+						var extractTo = webDir.resolve(entryName.substring(8));
 						if (entry.isDirectory()) {
 							createDirectories(extractTo);
 						} else {
 							Files.createDirectories(extractTo.getParent());
 							Files.deleteIfExists(extractTo);
-							Files.copy(tar, extractTo);
+							Files.copy(tar, extractTo, StandardCopyOption.REPLACE_EXISTING);
 						}
 					}
-				}
 			}
 		}
 
