@@ -188,7 +188,7 @@ public class Npm2Mvn implements Callable<Integer> {
 		var bindAddress = optionalString(this.bindAddress, "bindAddress");
 		
 		if(http.isEmpty() && https.isEmpty()) {
-			LOG.info("Neither http or https specific ports supplie, falling back to http only on port " + DEFAULT_HTTP_PORT);
+			LOG.info("Neither http or https specific ports supplied, falling back to http only on port " + DEFAULT_HTTP_PORT);
 			bldr.withHttp(DEFAULT_HTTP_PORT);
 		}
 		else  {
@@ -359,8 +359,6 @@ public class Npm2Mvn implements Callable<Integer> {
 				else
 					throw new NoSuchFileException(seq);
 			}
-			else
-				throw new NoSuchFileException(seq);
 		}
 		catch(NoSuchFileException nsfe) {
 			if(LOG.isLoggable(Level.FINE))
