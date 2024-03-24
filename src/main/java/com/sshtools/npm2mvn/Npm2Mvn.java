@@ -1073,6 +1073,7 @@ public class Npm2Mvn implements Callable<Integer> {
 			addPropertyFromElement(versionManifest, "type", props); 
 			addPropertyFromElement(versionManifest, "sass", props); 
 			addPropertyFromElement(versionManifest, "main", props); 
+			addPropertyFromElement(versionManifest, "module", props); 
 			addPropertyFromElement(versionManifest, "style", props);  
 			props.store(out, "Npm2Mvn");
 		}	
