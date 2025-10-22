@@ -1428,7 +1428,7 @@ killall -s SIGHUP dbus-daemon
 </preUninstallScript>
     </linuxDeb>
     <macosFolder name="macOS Folder (x64)" id="132" mediaFileName="npm2mvn-${compiler:sys.platform}-x64-${compiler:sys.version}" architecture="amd64">
-      <jreBundle jdkProviderId="JBR" release="21/21.0.2-b375.1" usePack200="false" overrideJdkRelease="true" />
+      <jreBundle jdkProviderId="JBR" release="21/21.0.8-b1163.62" usePack200="false" overrideJdkRelease="true" />
     </macosFolder>
     <unixInstaller name="Linux Amd64 Installer" id="198" mediaFileName="npm2mvn-linux-amd64-${compiler:sys.version}">
       <jreBundle usePack200="false" />
