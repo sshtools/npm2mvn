@@ -130,7 +130,7 @@ pipeline {
                             ) {
                                 sh 'mvn ' +
                                     '-U -Pinstallers  -Dbuild.projectProperties="$BUILD_PROPERTIES" ' +
-                                    '-Dinstall4j.mediaTypes=macosArchive,macosFolderArchive ' +
+                                    '-Dinstall4j.mediaTypes=macosFolder ' +
                                     'clean package'         
                                                         
                             }
