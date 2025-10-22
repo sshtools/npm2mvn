@@ -14,7 +14,9 @@ import java.io.PrintWriter;
 import java.io.UncheckedIOException;
 import java.net.URI;
 import java.net.http.HttpClient;
+import java.net.http.HttpClient.Redirect;
 import java.net.http.HttpRequest;
+import java.net.http.HttpRequest.Builder;
 import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
@@ -74,7 +76,8 @@ public class Npm2Mvn implements Callable<Integer> {
 	
 	private final static Logger LOG = Logger.getLogger(Npm2Mvn.class.getName());
 	private final static int DEFAULT_HTTP_PORT = 9080;
-	private final static URI root = URI.create("https://registry.npmjs.org");
+	private final static String defaultRoot = "https://registry.npmjs.org";
+//	private final static URI defaultRoot = URI.create("https://registry.npmjs.org");
 
 	private static final Object GROUP_ID = "npm";
 
@@ -485,15 +488,18 @@ public class Npm2Mvn implements Callable<Integer> {
 	}
 	
 	private InputStream getManifest(String filename, String groupId, String artifactId) throws IOException {
+		
+		var registry = optionalString(optionalString(Optional.empty(), "npm2mvn.defaultRegistry"), groupId + ":registry").orElse(defaultRoot);
+		
 		var cacheFileDir = artifactCacheDir(null, groupId, artifactId);
 		var cacheFile = cacheFileDir.resolve(groupId + ":" + artifactId + ".json");
 		if(Files.exists(cacheFile)) {
-			LOG.info(format("Responding with manifest {0} from the cache @ {1}", artifactId, cacheFile));
+			LOG.info(format("Responding with manifest {0} from the cache @ {1} using registry {2}", artifactId, cacheFile, registry));
 			return Files.newInputStream(cacheFile);
 		}
 		else {
-			var in = downloadManifest(filename, groupId, artifactId);
-			LOG.info(format("Responding with fresh copy manifest of {0} from NPM", artifactId));
+			var in = downloadManifest(URI.create(registry), filename, groupId, artifactId);
+			LOG.info(format("Responding with fresh manifest of {0} from {1}", artifactId, registry));
 			var out = Files.newOutputStream(cacheFile);
 			return new TeeInputStream(in, out);
 		}
@@ -505,17 +511,22 @@ public class Npm2Mvn implements Callable<Integer> {
 		return cacheFileDir;
 	}
 	
-	private InputStream downloadManifest(String filename, String groupId, String artifactId) {
+	private InputStream downloadManifest(URI root, String filename, String groupId, String artifactId) {
 		
 		var httpClient = createHttpClient();
 		var uri = groupId.equals(GROUP_ID) ? 
 				URI.create(root.toString() + "/" + artifactId) : 
 				URI.create(root.toString() + "/@" + groupId.substring(4) + "/" + artifactId);
 		LOG.info(format("Getting manifest from {0}", uri));
-		var request = HttpRequest.newBuilder().GET().uri(uri).build();
+		
+		var requestBldr = HttpRequest.newBuilder().GET().uri(uri);
+		
+		addAuth(requestBldr, uri.getHost());
+		
+		var request = requestBldr.build();
 		var handler = HttpResponse.BodyHandlers.ofInputStream();
 		try {
-			var response = httpClient.send(request, handler);
+			var response = httpClient.build().send(request, handler);
 			switch (response.statusCode()) {
 			case 200:
 				return response.body();
@@ -531,8 +542,14 @@ public class Npm2Mvn implements Callable<Integer> {
 		}
 	}
 
-	private HttpClient createHttpClient() {
-		return HttpClient.newBuilder().build();
+	private void addAuth(Builder requestBldr, String uriHost) {
+		optionalString(Optional.empty(), "auth." + uriHost + ":token").ifPresent(authToken -> {
+			requestBldr.header("Authorization", "Bearer  " + authToken);
+		});
+	}
+
+	private java.net.http.HttpClient.Builder createHttpClient() {
+		return HttpClient.newBuilder();
 	}
 
 	
@@ -980,10 +997,15 @@ public class Npm2Mvn implements Callable<Integer> {
 				
 				LOG.info(format("Found @ {0}", tarball));
 				
-				var request = HttpRequest.newBuilder().GET().uri(tarball).build();
+				var requestBuilder = HttpRequest.newBuilder().GET().uri(tarball);
+				addAuth(requestBuilder, tarball.getHost());
+				
+				var request = requestBuilder.build();
 				var handler = HttpResponse.BodyHandlers.ofInputStream();
 				try {
-					var response = createHttpClient().send(request, handler);
+					var response = createHttpClient().
+							followRedirects(Redirect.ALWAYS).build().
+							send(request, handler);
 					switch (response.statusCode()) {
 					case 200:
 						return tarballToJar(tx, response.body(), filename, groupId, artifactId, version, foundVersion);
