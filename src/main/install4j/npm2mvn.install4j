@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<install4j version="10.0.7" transformSequenceNumber="10">
+<install4j version="10.0.9" transformSequenceNumber="10">
   <directoryPresets config="../resources/com/sshtools" />
   <application name="Npm2Mvn" applicationId="3923-8463-7793-8732" mediaDir="../../target/media" mediaFilePattern="npm2mvn-${compiler:sys.platform}-${compiler:sys.version}" lzmaCompression="true" pack200Compression="true" shortName="npm2mvn" publisher="Jadaptive" publisherWeb="https://jadaptive.com" version="0.0.1-SNAPSHOT" allPathsRelative="true" macVolumeId="c911279a1b9f40fa" javaMinVersion="21" javaMaxVersion="21" jdkMode="jdk">
     <searchSequence>
@@ -28,7 +28,7 @@
         <entry>jline-native*</entry>
       </macSearchedJars>
     </codeSigning>
-    <jreBundles jdkProviderId="AdoptOpenJDK" release="21/jdk-21.0.2+13" />
+    <jreBundles jdkProviderId="AdoptOpenJDK" release="21/jdk-21.0.8+9" />
   </application>
   <files>
     <mountPoints>
