@@ -112,7 +112,7 @@
         <dependency>
             <groupId>com.install4j</groupId>
             <artifactId>install4j-runtime</artifactId>
-            <version>10.0.9</version>
+            <version>11.0.5</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -249,7 +249,7 @@
                 <plugin>
                     <groupId>com.install4j</groupId>
                     <artifactId>install4j-maven</artifactId>
-                    <version>10.0.9</version>
+                    <version>11.0.5</version>
                 </plugin>
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
@@ -506,19 +506,31 @@
                                     <goal>compile</goal>
                                 </goals>
                                 <configuration>
+                                
+                                    <license>${install4j.testing.license}</license>
+                                    <installDir>${install4j11.home}</installDir>
                                     <variables>
                                         <install4j.phase>${install4j.phase}</install4j.phase>
                                         <install4j.appleId>${install4j.appleId}</install4j.appleId>
-                                        <install4j.windowsKeystoreIssuer>${install4j.windowsKeystoreIssuer}</install4j.windowsKeystoreIssuer>
-                                        <install4j.windowsKeystoreSerial>${install4j.windowsKeystoreSerial}</install4j.windowsKeystoreSerial>
+                                        <install4j.appleId>${install4j.appleId}</install4j.appleId>
+                                        <install4j.appleIdPassword>${install4j.appleIdPassword}</install4j.appleIdPassword>
+                                        <install4j.appleIssuerId>${install4j.appleIssuerId}</install4j.appleIssuerId>
+                                        <install4j.appleKeyId>${install4j.appleKeyId}</install4j.appleKeyId>
+                                        <install4j.applePrivateKeyFile>${install4j.applePrivateKeyFile}</install4j.applePrivateKeyFile>
+                                        <install4j.macPkcs12File>${install4j.macPkcs12File}</install4j.macPkcs12File>
+                                        <install4j.windowsKeystoreIssuer>${install4j.windowsKeystoreIssuer}</install4j.windowsKeystoreIssuer>>
+                                        <install4j.windowsKeystoreSerial>${install4j.windowsKeystoreSerial}</install4j.windowsKeystoreSerial>>
                                         <install4j.windowsKeystoreSubject>${install4j.windowsKeystoreSubject}</install4j.windowsKeystoreSubject>
+                                        <install4j.windowsSigning>${install4j.windowsSigning}</install4j.windowsSigning>
                                         <install4j.updatesBase>${install4j.updatesBase}</install4j.updatesBase>
                                         <install4j.jaulAppId>${install4j.jaulAppId}</install4j.jaulAppId>
                                         <install4j.jaulUpdaterId>${install4j.jaulUpdaterId}</install4j.jaulUpdaterId>
+                                        <install4j.jaulBranches>${install4j.jaulBranches}</install4j.jaulBranches>
                                     </variables>
                                     <release>${product.version}-${build.number}</release>
                                     <mediaTypes>${install4j.mediaTypes}</mediaTypes>
                                     <projectFile>${install4j.project}</projectFile>
+                                
                                 </configuration>
                             </execution>
                         </executions>
