@@ -168,6 +168,9 @@ public class Npm2Mvn implements Callable<Integer> {
 	@Option(names = {"-R", "--no-transitive"}, description = "Do not generate <dependency> tags in poms.")
 	private boolean noTransitive;
 	
+	@Option(names = {"-G", "--gzip-compression"}, description = "Enable GZIP compress (flaky).")
+	private boolean compression;
+	
 	private final TemplateProcessor processor;
 	private final Set<String> downloading = Collections.synchronizedSet(new HashSet<>());
 	
@@ -203,6 +206,9 @@ public class Npm2Mvn implements Callable<Integer> {
 		}
 		bindAddress.ifPresent(addr-> bldr.withHttpAddress(addr));
 		
+		if(!compression)
+			bldr.withoutCompression();
+		
 		/* Mappings */
 		bldr.get(optionalString(path, "path").map(p -> p.endsWith("/") ? p : p + "/").orElse("/") + "(.*)", this::handle);
 		bldr.get(".*\\.html", this::homePage);
@@ -219,6 +225,7 @@ public class Npm2Mvn implements Callable<Integer> {
 		
 		
 		/* Server */
+
 		var srvr = bldr.build();
 		LOG.info(format("Caching to {0}", cacheDir()));
 		srvr.run();

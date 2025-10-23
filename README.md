@@ -25,6 +25,10 @@ compatible with Graal Native Image for fast startup and low resource usage.
 
 ## Changes
 
+### 0.9.2
+
+ * Issue with uhttpd GZIP compression means it is not enabled by default.
+
 ### 0.9.1
 
  * Issue with home page templates if they contained script tags.
