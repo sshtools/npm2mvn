@@ -25,6 +25,10 @@ compatible with Graal Native Image for fast startup and low resource usage.
 
 ## Changes
 
+### 0.9.1
+
+ * Issue with home page templates if they contained script tags.
+
 ### 0.9.0
 
  * Added ability to configure custom registry locations for groups (e.g. to allow Font Awesome kits). This is done through the `npm.<group>:registry` system property.
