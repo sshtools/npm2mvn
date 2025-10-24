@@ -212,17 +212,17 @@ public class Npm2Mvn implements Callable<Integer> {
 		}
 		bindAddress.ifPresent(addr-> bldr.withHttpAddress(addr));
 		
-		if(!compression) {
+		if(!compression && !Boolean.getBoolean("compressions")) {
 			bldr.withoutCompression();
 			LOG.info("Disabled compression");
 		}
 		
-		if(noLowerCaseHeaders) {
+		if(noLowerCaseHeaders || Boolean.getBoolean("noLowerCaseHeaders")) {
 			bldr.withoutSendLowerCaseHeaders();
 			LOG.info("Disabled lower-case headers");
 		}
 		
-		if(noKeepAlive) {
+		if(noKeepAlive || Boolean.getBoolean("noKeepAlive")) {
 			bldr.withoutKeepalive();
 			LOG.info("Disabled keep-alive");
 		}

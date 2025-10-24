@@ -21,7 +21,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.sshtools</groupId>
     <artifactId>npm2mvn</artifactId>
-    <version>0.9.3</version>
+    <version>0.9.4</version>
     <name>npm2mvn - Npm to Maven Proxy</name>
     <properties>
         <maven.compiler.target>21</maven.compiler.target>
