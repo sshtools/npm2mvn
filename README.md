@@ -25,6 +25,10 @@ compatible with Graal Native Image for fast startup and low resource usage.
 
 ## Changes
 
+### 0.9.3
+
+ * Added `--no-keep-alive` and `--no-lowercase-headers` options to help with client compatibility.
+
 ### 0.9.2
 
  * Issue with uhttpd GZIP compression means it is not enabled by default.

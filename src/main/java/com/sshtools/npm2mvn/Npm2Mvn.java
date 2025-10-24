@@ -171,6 +171,12 @@ public class Npm2Mvn implements Callable<Integer> {
 	@Option(names = {"-G", "--gzip-compression"}, description = "Enable GZIP compress (flaky).")
 	private boolean compression;
 	
+	@Option(names = {"-L", "--no-lowercase-headers"}, description = "Do not respond with lower-case headers.")
+	private boolean noLowerCaseHeaders;
+	
+	@Option(names = {"-A", "--no-keepalive"}, description = "Do not support keep-alive.")
+	private boolean noKeepAlive;
+	
 	private final TemplateProcessor processor;
 	private final Set<String> downloading = Collections.synchronizedSet(new HashSet<>());
 	
@@ -206,8 +212,22 @@ public class Npm2Mvn implements Callable<Integer> {
 		}
 		bindAddress.ifPresent(addr-> bldr.withHttpAddress(addr));
 		
-		if(!compression)
+		if(!compression) {
 			bldr.withoutCompression();
+			LOG.info("Disabled compression");
+		}
+		
+		if(noLowerCaseHeaders) {
+			bldr.withoutSendLowerCaseHeaders();
+			LOG.info("Disabled lower-case headers");
+		}
+		
+		if(noKeepAlive) {
+			bldr.withoutKeepalive();
+			LOG.info("Disabled keep-alive");
+		}
+		
+		bldr.withoutSendLowerCaseHeaders();
 		
 		/* Mappings */
 		bldr.get(optionalString(path, "path").map(p -> p.endsWith("/") ? p : p + "/").orElse("/") + "(.*)", this::handle);
